@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -49,6 +51,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -56,6 +59,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -117,6 +121,9 @@ fun StartingScreen(
     onSwipeLeft : (String) -> Unit,
     dynamicColor: Boolean = true,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    openDialog: MutableState<Boolean>
     //fileName: String
 ) {
 
@@ -168,6 +175,7 @@ fun StartingScreen(
         }
         //BooksLazyColumn(bookList = bookList)
         BooksLazyColumnMap(bookMap = bookMap , onCardClick , onSwipeLeft , theme , darkTheme )
+        SelectedBookAlertDialog(onConfirm = { onConfirm() }, onDismiss = { onDismiss() }, openDialog = openDialog)
     }
 }
 /*
@@ -380,6 +388,44 @@ fun BookmarkDrawer(){
         content = {
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectedBookAlertDialog( onConfirm : ()-> Unit , onDismiss : ()-> Unit  , openDialog : MutableState<Boolean>){
+
+    if(openDialog.value){
+
+        AlertDialog(
+            icon = {Icons.Default.Info},
+            title = { Text(text ="Wait a Mintue!"  ) },
+            text = {
+                Text(text =  "it appears there is another session of the same book you are trying to open \n would you like to make a new session or continue your previous session ?"
+            )},
+            onDismissRequest = {
+                openDialog.value = false
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onConfirm()
+                    openDialog.value = false
+                }) {
+                    Text("Start a new session")
+                }
+
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    onDismiss()
+                    openDialog.value = false
+                }) {
+                    Text("Continue last session")
+                }
+            }
+        )
+
+    }
+
 }
 
 

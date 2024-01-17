@@ -1,19 +1,22 @@
 package com.pdf.studymarkercompsose.data
 
 import android.content.res.Resources
+import android.graphics.PointF
 import android.util.TypedValue
 import androidx.compose.ui.geometry.Offset
 
 
 enum class ButtonId{
-    Draw,
-    Delete
+    Rect,
+    Delete,
+    Path
 }
 
 enum class ModeState{
-    Draw,
+    Rect,
     Delete,
-    Idle
+    Idle,
+    Path
 }
 
 
@@ -40,4 +43,9 @@ data class RectData(
     var height : Float = 0f,
     var filled : Boolean = false,
     var strokeWidth : Float = 5f
+)
+
+data class PathInfo(
+    var offset : PointF = PointF(0f,0f),
+    val pointsList : MutableList<PointF> = mutableListOf(),
 )

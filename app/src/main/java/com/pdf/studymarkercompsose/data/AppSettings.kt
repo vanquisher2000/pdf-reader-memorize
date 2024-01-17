@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
 import android.graphics.RectF
+import androidx.compose.ui.geometry.Offset
 import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -67,8 +68,18 @@ data class PdfData(
 @Serializable
 data class PageData(
     val pageNo : Int,
-    val rectF: SerializedRectF,
-    val paint: SerializedPaint
+    val rectF: ComposeRect,
+    //val paint: SerializedPaint
+)
+
+@Serializable
+data class ComposeRect(
+    val x : Float,
+    val y : Float,
+    var width : Float = 0f,
+    var height : Float = 0f,
+    var filled : Boolean = false,
+    var strokeWidth : Float = 5f
 )
 
 

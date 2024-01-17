@@ -21,9 +21,13 @@ class SharedViewModel : ViewModel() {
     val sharedFilePath = MutableLiveData<String>()
     val scrollYRatio = MutableLiveData<Float>()
     val timeCreated = MutableLiveData<String>()
+    val pageCount = MutableLiveData<Int>()
+
+    val context = MutableLiveData<Context>()
 
     val currentDrawingList = MutableLiveData<PersistentList<PageData>>()
 
+    val drawingsLifeData = MutableLiveData<MutableMap<Int , MutableList<RectData>>>()
 
     /*val selectedPdfUri: MutableLiveData<Uri>
         get() = selectedPdfUri
