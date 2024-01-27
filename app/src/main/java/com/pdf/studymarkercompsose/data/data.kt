@@ -4,19 +4,32 @@ import android.content.res.Resources
 import android.graphics.PointF
 import android.util.TypedValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.pdf.studymarker.data.PersistentPathInfoListSerializer
+import com.pdf.studymarker.data.SerializedColor
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.serialization.Serializable
 
 
 enum class ButtonId{
     Rect,
     Delete,
-    Path
+    Path,
+    Color,
+    ColorWheel,
+    Marker,
+    Width
 }
 
 enum class ModeState{
     Rect,
     Delete,
     Idle,
-    Path
+    Path,
+    Marker
 }
 
 
@@ -37,15 +50,38 @@ enum class MultiFloatingState {
     Collapsed
 }
 
-data class RectData(
+/*data class RectData(
     var offset : Offset = Offset(0f,0f),
     var width : Float = 0f,
     var height : Float = 0f,
     var filled : Boolean = false,
     var strokeWidth : Float = 5f
+)*/
+
+@Serializable
+data class PathInfo(
+    //var offset : PointF = PointF(0f,0f),
+    var x : Float = 0f,
+    var y : Float = 0f,
+    @Serializable(PersistentPathInfoListSerializer :: class)
+    val pointsList : PersistentList<PathPoint> = persistentListOf(),
+)
+@Serializable
+data class PathPoint(
+    var x : Float,
+    var y : Float
 )
 
-data class PathInfo(
-    var offset : PointF = PointF(0f,0f),
-    val pointsList : MutableList<PointF> = mutableListOf(),
+data class Line(
+    val start: Offset,
+    val end: Offset,
+    val strokeWidth: Dp = 10.dp
 )
+
+fun SerializedColor.toColor() : Color {
+    return Color(this.red , this.green , this.blue,this.alpha)
+}
+
+fun Color.toSerializedColor() : SerializedColor{
+    return SerializedColor(this.red  ,this .green , this.blue , this.alpha)
+}

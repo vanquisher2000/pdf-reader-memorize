@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.StudyMarkerCompsose" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.StudyMarkerCompsose" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 
     <style name="ThemeOverlay.App.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorPrimary">@color/main_500</item>

@@ -20,6 +20,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.util.SizeF
 import android.util.TypedValue
+import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -40,11 +41,18 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -100,6 +108,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.datastore.dataStore
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
@@ -143,6 +152,7 @@ class MainActivity : ComponentActivity() {
 
 
 
+    @OptIn(ExperimentalLayoutApi::class)
     @RequiresApi(Build.VERSION_CODES.S)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -232,9 +242,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+        //window.setFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        //window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+
+        //window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        // This flag will prevent the status bar disappearing animation from jerking the content view
+        //window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+        //window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+
+
 
         enableEdgeToEdge()
         setContent {
+
 
             val state by viewModel.state.collectAsState()
             appSettings = application.dataStore.data.collectAsState(initial = AppSettings()).value
@@ -242,9 +262,12 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
 
-            MaterialTheme {
+            StudyMarkerCompsoseTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
+                    ,
                     color = MaterialTheme.colorScheme.background,
 
                 ) {
@@ -402,6 +425,8 @@ class MainActivity : ComponentActivity() {
             currentDrawingList.value = pdfData.drawings
             scrollYRatio.value   = pdfData.scrollPositionRatio
             timeCreated.value = pdfData.timeCreated
+            currentDrawings.value = pdfData.allDrawings
+            currentColor.value = pdfData.lastUsedColor
             //pageCount.value = pdfRenderer?.pageCount
             Log.d(TAG, "getBookData: size :${currentDrawingList.value?.size}")
             Log.d(TAG, "onCardClicked: got data 6 : ${sharedViewModel.currentBook.value} , uri ${sharedUri.value} , uriString : ${pdfData.uriString}")
@@ -440,14 +465,11 @@ class MainActivity : ComponentActivity() {
             currentPage.value = 0
             sharedFilePath.value = filePath
             currentDrawingList.value = null
-            scrollYRatio.value   = 0f
+            scrollYRatio.value   = 0
             timeCreated.value = currentTime
         }
 
         lifecycleScope.launch { updateBooksMap(newName , 0 , uri.toString() , filePath , currentTime) }
-
-        //val navi = view?.findNavController()
-        // TODO : navi?.navigate(R.id.action_startingScreenFragment_to_readingscreenFragment)
     }
 
     private suspend fun updateBooksMap(fileName : String, pageNo: Int,uriString : String , path: String , timeCreatedOn : String ){

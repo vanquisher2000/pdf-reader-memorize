@@ -5,8 +5,12 @@ import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.pdf.studymarker.data.ComposeRect
 import com.pdf.studymarker.data.PageData
+import com.pdf.studymarker.data.PageDrawings
+import com.pdf.studymarker.data.SerializedColor
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentMap
 
 data class liveData(
     val selectedPdfUri : Uri
@@ -19,7 +23,7 @@ class SharedViewModel : ViewModel() {
     val currentBook = MutableLiveData<String>()
     val currentPage = MutableLiveData<Int>()
     val sharedFilePath = MutableLiveData<String>()
-    val scrollYRatio = MutableLiveData<Float>()
+    val scrollYRatio = MutableLiveData<Int>()
     val timeCreated = MutableLiveData<String>()
     val pageCount = MutableLiveData<Int>()
 
@@ -27,7 +31,12 @@ class SharedViewModel : ViewModel() {
 
     val currentDrawingList = MutableLiveData<PersistentList<PageData>>()
 
-    val drawingsLifeData = MutableLiveData<MutableMap<Int , MutableList<RectData>>>()
+    val currentDrawings = MutableLiveData<PersistentMap<Int , PageDrawings>>()
+    val drawingMapLifeData = MutableLiveData<MutableMap<Int , PageDrawings>>()
+
+    val drawingsLifeData = MutableLiveData<MutableMap<Int , MutableList<ComposeRect>>>()
+
+    val currentColor = MutableLiveData<SerializedColor>()
 
     /*val selectedPdfUri: MutableLiveData<Uri>
         get() = selectedPdfUri
