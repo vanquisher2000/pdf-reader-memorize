@@ -21,7 +21,9 @@ enum class ButtonId{
     Color,
     ColorWheel,
     Marker,
-    Width
+    Width,
+    GoToPage,
+    DarkMode
 }
 
 enum class ModeState{

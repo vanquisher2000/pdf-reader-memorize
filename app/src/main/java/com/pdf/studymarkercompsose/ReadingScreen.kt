@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
@@ -99,6 +97,8 @@ fun ReadingScreen(
     val drawingsMap = sharedModel.drawingMapLifeData.value
     val strokeWidth = remember { mutableFloatStateOf(10f) }
 
+    val animateScroll = sharedModel.animateScroll.value?: true
+
 
     /*savedMap[it]?.let { savedList ->
         savedList.forEach { rect ->
@@ -136,19 +136,19 @@ fun ReadingScreen(
         MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.draw_rect_icon)
             ,
-            label = "draw rect" ,
+            label = "Rectangle" ,
             id = ButtonId.Rect
         ),
         MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.eraser_tool_2_32)
             ,
-            label = "erase" ,
+            label = "Erase" ,
             id = ButtonId.Delete
         ),
         MiniFabItem(
-            icon = Icons.Default.Create,
-            label = "path",
-            id = ButtonId.Path
+            icon = ImageVector.vectorResource(id = R.drawable.dark_mode_icon),
+            label = "Dark Mode",
+            id = ButtonId.DarkMode
         ),
         MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.color_wheel_3)
@@ -157,15 +157,15 @@ fun ReadingScreen(
             id = ButtonId.Color
         ),
         MiniFabItem(
-            icon = ImageVector.vectorResource(id = R.drawable.color_wheel_3)
+            icon = ImageVector.vectorResource(id = R.drawable.web_page)
             ,
-            label = "ColorWheel" ,
-            id = ButtonId.ColorWheel
+            label = "Go To Page" ,
+            id = ButtonId.GoToPage
         ),
         MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.stroke_width_icon)
             ,
-            label = "pen thickness" ,
+            label = "Marker Thickness" ,
             id = ButtonId.Width
         ),
         MiniFabItem(
@@ -227,6 +227,7 @@ fun ReadingScreen(
     val pageNo = remember { derivedStateOf { state.firstVisibleItemIndex } }
     val bottomBarWidth = remember { mutableStateOf(64.dp) }
     val bottomBarAlpha = remember { mutableFloatStateOf(0f) }
+    val darkModeToggle = remember { mutableStateOf(false) }
 
 
     Scaffold (floatingActionButton = {
@@ -254,14 +255,24 @@ fun ReadingScreen(
                 onModeStateChange = { modeState.value = it },
                 strokeWidth = strokeWidth,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                gotoFunction = {
+                    val selectedPage = it.coerceIn(0 , pageCount)
+                    coroutineScope.launch {
+                        if(animateScroll) state.animateScrollToItem(selectedPage, 0)
+                        else state.scrollToItem(selectedPage, 0)
+                    }
+                },
+                darkModeToggle = darkModeToggle
             )
 
             Slider(
                 value = pageNo.value.toFloat(),
                 onValueChange = {
                     coroutineScope.launch {
-                        state.animateScrollToItem((it.toInt()), 0)
+                        //state.animateScrollToItem((it.toInt()), 0)
+                        if(animateScroll) state.animateScrollToItem(it.toInt(), 0)
+                        else state.scrollToItem(it.toInt(), 0)
                     }
                 },
                 valueRange = 0f..pageCount!!.toFloat(),
@@ -287,7 +298,8 @@ fun ReadingScreen(
 
 
         LaunchedEffect(key1 = Unit) {
-            state.animateScrollToItem((sharedModel.currentPage.value?: 0) , sharedModel.scrollYRatio.value?: 0)
+            if(animateScroll) state.animateScrollToItem((sharedModel.currentPage.value?: 0) , sharedModel.scrollYRatio.value?: 0)
+            else state.scrollToItem((sharedModel.currentPage.value?: 0) , sharedModel.scrollYRatio.value?: 0)
         }
 
         LazyColumn(
@@ -378,7 +390,8 @@ fun ReadingScreen(
                     pageDrawings = sharedModel.drawingMapLifeData.value!![it],
                     pathMap =  pathMap[it]!!,
                     strokeWidth = strokeWidth,
-                    currentColor = currentColor
+                    currentColor = currentColor,
+                    darkModeToggle = darkModeToggle
                 )
 
             }

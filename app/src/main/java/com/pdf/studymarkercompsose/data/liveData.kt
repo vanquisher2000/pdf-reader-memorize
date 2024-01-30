@@ -38,6 +38,8 @@ class SharedViewModel : ViewModel() {
 
     val currentColor = MutableLiveData<SerializedColor>()
 
+    val animateScroll = MutableLiveData<Boolean>()
+
     /*val selectedPdfUri: MutableLiveData<Uri>
         get() = selectedPdfUri
 

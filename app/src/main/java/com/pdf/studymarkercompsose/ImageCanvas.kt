@@ -58,7 +58,8 @@ fun ImageCanvas(
     pageDrawings: PageDrawings?,
     pathMap: SnapshotStateList<Path>,
     strokeWidth: MutableFloatState,
-    currentColor: MutableLiveData<SerializedColor>
+    currentColor: MutableLiveData<SerializedColor>,
+    darkModeToggle: MutableState<Boolean>
 ){
 
     val TAG = "ImageCanvas $currentPage"
@@ -98,27 +99,41 @@ fun ImageCanvas(
             .pointerInput(modeState.value, twoFingers.value, Unit) {
 
                 Log.d(TAG, "ImageCanvas: current mode ${modeState.value}")
-                if (modeState.value == ModeState.Rect && !twoFingers.value) {
+                if ((modeState.value == ModeState.Rect || modeState.value == ModeState.Marker) && !twoFingers.value) {
                     detectDragGestures(
                         onDrag = { change, dragAmount ->
 
                             val width = change.position.x - currentRect.value.x
-                            val height = change.position.y - currentRect.value.y
-
-                            currentRect.value = ComposeRect(currentRect.value.x , currentRect.value.y, width, height , strokeWidth = strokeWidth.floatValue , color = currentColor.value!!)
+                            val height =
+                                if (modeState.value == ModeState.Rect) change.position.y - currentRect.value.y
+                                else (strokeWidth.floatValue )
+                            Log.d(TAG, "ImageCanvas: marker :  $width , $height , ${strokeWidth.floatValue} ")
+                            currentRect.value = ComposeRect(
+                                currentRect.value.x,
+                                currentRect.value.y,
+                                width,
+                                height,
+                                color = currentColor.value!!
+                            )
                             Log.d(
                                 TAG,
                                 "ImageCanvas: drawing rect : ${currentRect.value} , ${modeState.value}"
                             )
                         },
                         onDragStart = { offset: Offset ->
-                            currentRect.value = ComposeRect(offset.x , offset.y , color = currentColor.value!!)
+                            currentRect.value = ComposeRect(
+                                offset.x,
+                                y = if(modeState.value == ModeState.Rect) offset.y else offset.y - (strokeWidth.floatValue / 2) ,
+                                //y = offset.y,
+                                color = currentColor.value!!
+                            )
                         },
                         onDragCancel = {},
                         onDragEnd = {
                             currentRect.let { rects.add(it.value) }
 
-                            currentRect.value = ComposeRect(0f,0f , color = SerializedColor(alpha = 0f))
+                            currentRect.value =
+                                ComposeRect(0f, 0f, color = SerializedColor(alpha = 0f))
 
                         }
                     )
@@ -133,7 +148,11 @@ fun ImageCanvas(
                             }
                             pathPointList.add(PathPoint(change.position.x, change.position.y))
                             currentPath.value =
-                                PathInfo(currentPath.value.x, currentPath.value.y, pathPointList.toPersistentList())
+                                PathInfo(
+                                    currentPath.value.x,
+                                    currentPath.value.y,
+                                    pathPointList.toPersistentList()
+                                )
 
 //                            val line = Line(
 //                                start = change.position - dragAmount,
@@ -157,7 +176,8 @@ fun ImageCanvas(
                                 list += currentPath.value
                                 Log.d(TAG, "ImageCanvas: path map list after adding $currentPage :  ${list.size}")
                             }*/
-                            pageDrawings?.pathList = pageDrawings?.pathList?.mutate { it += currentPath.value }
+                            pageDrawings?.pathList =
+                                pageDrawings?.pathList?.mutate { it += currentPath.value }
 
                             pathInfoList.add(currentPath.value)
 
@@ -169,7 +189,7 @@ fun ImageCanvas(
                 }
 
             }
-            .pointerInput(pageNo.value, rectMap , modeState.value) {
+            .pointerInput(pageNo.value, rectMap, modeState.value) {
 
                 detectTapGestures { offset ->
                     Log.d(
@@ -180,7 +200,7 @@ fun ImageCanvas(
 
                     Log.d(TAG, "ImageCanvas: curretn tap is $offset")
 
-                    if(modeState.value == ModeState.Delete){
+                    if (modeState.value == ModeState.Delete) {
                         /*pathInfoList.forEachIndexed { index, pathInfo ->
                             val point = PathPoint(offset.x,offset.y)
                             if(pathInfo.pointsList.contains(point)){
@@ -189,10 +209,14 @@ fun ImageCanvas(
                                 //break
                             }
                         }*/
-                        for(i in 0 until pathList.size) {
-                            if(pathList[i].getBounds().contains(offset)){
+                        for (i in 0 until pathList.size) {
+                            if (pathList[i]
+                                    .getBounds()
+                                    .contains(offset)
+                            ) {
                                 pathList.removeAt(i)
-                                pageDrawings?.pathList = pageDrawings?.pathList?.mutate { it.removeAt(i) }
+                                pageDrawings?.pathList =
+                                    pageDrawings?.pathList?.mutate { it.removeAt(i) }
                                 break
                             }
                         }
@@ -213,9 +237,17 @@ fun ImageCanvas(
                         if (tempRect.contains(offset)) {
                             Log.d(TAG, "ImageCanvas: tap hit!!!")
                             it.filled = !it.filled
-                            val newRect = ComposeRect(it.x,it.y, it.width, it.height, it.filled, it.strokeWidth , it.color)
+                            val newRect = ComposeRect(
+                                it.x,
+                                it.y,
+                                it.width,
+                                it.height,
+                                it.filled,
+                                it.strokeWidth,
+                                it.color
+                            )
                             rects.remove(it)
-                            if(modeState.value != ModeState.Delete) rects.add(newRect)
+                            if (modeState.value != ModeState.Delete) rects.add(newRect)
                             break
                         }
                     }
@@ -229,7 +261,7 @@ fun ImageCanvas(
                 }
             },
     ){
-        if(darkMode){
+        if(darkModeToggle.value){
             drawImage(
                 image ,
                 colorFilter =  ColorFilter.colorMatrix(ColorMatrix(colorMatrix)),

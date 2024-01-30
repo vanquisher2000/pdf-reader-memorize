@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.PdfData
 import com.pdf.studymarkercompsose.data.SharedViewModel
 
@@ -19,15 +20,16 @@ import com.pdf.studymarkercompsose.data.SharedViewModel
 fun navigation(
     openPdfPage: (Int) -> ImageBitmap,
     state: StartingScreenState,
-    onSelectClick : () -> Unit,
-    bookMap: Map<String , PdfData>,
-    onCardClick : (String)-> Unit,
-    onSwipeLeft : (String)-> Unit,
+    onSelectClick: () -> Unit,
+    bookMap: Map<String, PdfData>,
+    onCardClick: (String) -> Unit,
+    onSwipeLeft: (String) -> Unit,
     sharedViewModel: SharedViewModel,
-    onResumeReading : () -> Unit,
+    onResumeReading: () -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    openDialog: MutableState<Boolean>
+    openDialog: MutableState<Boolean>,
+    appSettings: AppSettings
 ) : NavHostController {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = Screen.MainScreen.route){
@@ -39,7 +41,8 @@ fun navigation(
                 onSwipeLeft = onSwipeLeft,
                 onConfirm = { onConfirm() },
                 onDismiss = { onDismiss() },
-                openDialog = openDialog
+                openDialog = openDialog,
+                appSettings = appSettings
             )
         }
         composable(

@@ -2,14 +2,11 @@ package com.pdf.studymarkercompsose
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.res.Resources
 import android.database.Cursor
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
@@ -19,8 +16,6 @@ import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.util.Log
 import android.util.SizeF
-import android.util.TypedValue
-import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,90 +24,29 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.animateDp
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.datastore.dataStore
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
-import androidx.navigation.findNavController
+import com.google.android.gms.ads.MobileAds
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.AppSettingsSerializer
@@ -125,12 +59,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.InputStream
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.absoluteValue
 
 val Context.dataStore by dataStore("app-settings.json" , AppSettingsSerializer)
 
@@ -159,6 +90,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
 
+        MobileAds.initialize(this){
+            Log.d(TAG, "onCreate: current ads status : $it , ${it.adapterStatusMap}")
+        }
 
 
 
@@ -277,6 +211,7 @@ class MainActivity : ComponentActivity() {
                                 i: Int ->
                             openPdfPage(i)
                         },
+                        appSettings = appSettings,
                         bookMap = appSettings.bookHashMap,
                         onSelectClick = {openFilePicker()},
                         state = state,
@@ -305,14 +240,17 @@ class MainActivity : ComponentActivity() {
 
     private fun openPdfPage(pageN0 : Int) : ImageBitmap{
 
+        if(pdfRenderer == null) initializePdf()
         val page = pdfRenderer!!.openPage(pageN0)
 
         val displayMetrics = getScreenWidth()
 
         //val relativeHeight : Float = (displayMetrics.x.toFloat() / page.width.toFloat()) * page.height
 
-        val pageScaleFactor = (displayMetrics.x.toFloat() / page.width.toFloat())
 
+
+        val pageScaleFactor = if(appSettings.pageScaling == 0) (displayMetrics.x.toFloat() / page.width.toFloat()) else appSettings.pageScaling.toFloat()
+        //val pageScaleFactor = (displayMetrics.x.toFloat() / page.width.toFloat())
         val bitmapSize  = SizeF(page.width * pageScaleFactor , page.height * pageScaleFactor)
 
         val bitmap = Bitmap.createBitmap(bitmapSize.width.toInt(),bitmapSize.height.toInt(), Bitmap.Config.ARGB_8888)
@@ -427,6 +365,7 @@ class MainActivity : ComponentActivity() {
             timeCreated.value = pdfData.timeCreated
             currentDrawings.value = pdfData.allDrawings
             currentColor.value = pdfData.lastUsedColor
+            animateScroll.value = appSettings.first().scrollAnimation
             //pageCount.value = pdfRenderer?.pageCount
             Log.d(TAG, "getBookData: size :${currentDrawingList.value?.size}")
             Log.d(TAG, "onCardClicked: got data 6 : ${sharedViewModel.currentBook.value} , uri ${sharedUri.value} , uriString : ${pdfData.uriString}")

@@ -21,22 +21,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -77,7 +83,9 @@ fun MultiFab(
     modifier: Modifier = Modifier,
     bottomBarWidth: MutableState<Dp>,
     bottomBarAlpha: MutableFloatState,
-    currentColor: MutableLiveData<SerializedColor>
+    currentColor: MutableLiveData<SerializedColor>,
+    gotoFunction: (Int) -> Unit,
+    darkModeToggle: MutableState<Boolean>
 ) {
 
     val transition = updateTransition(targetState = multiFloatingState , label = "transition")
@@ -102,11 +110,14 @@ fun MultiFab(
     val configuration = LocalConfiguration.current
 
     val openColorPicker = remember { mutableStateOf(false) }
+    val openGoToPageDialog = remember { mutableStateOf(false) }
+
 
     val currentColorState = remember { mutableStateOf(currentColor.value!!.toColor()) }
 
 
     ColorPicker(openColorPicker = openColorPicker , currentColor = currentColor , currentColorState = currentColorState)
+    GoToPageDialog(openGoToPageDialog = openGoToPageDialog) { gotoFunction(it) }
 
     Column(
         horizontalAlignment = Alignment.End,
@@ -139,10 +150,12 @@ fun MultiFab(
                         }
                         ButtonId.Marker -> {
                             onModeStateChange(
-                                if(modeTransient.currentState != ModeState.Path) ModeState.Path
+                                if(modeTransient.currentState != ModeState.Path) ModeState.Marker
                                 else ModeState.Idle
                             )
                         }
+                        ButtonId.GoToPage ->{ openGoToPageDialog.value = true }
+                        ButtonId.DarkMode -> { darkModeToggle.value = !darkModeToggle.value }
                         else -> {}
                     }
                 },
@@ -259,7 +272,8 @@ fun MiniFab(
                         .alpha(
                             animateFloatAsState(
                                 targetValue = alpha,
-                                animationSpec = tween(50)
+                                animationSpec = tween(50),
+                                label = "alpha animation"
                             ).value
                         )
                         .shadow(textShadow)
@@ -490,10 +504,10 @@ fun ColorPicker(
     currentColor: MutableLiveData<SerializedColor>,
     currentColorState: MutableState<Color>
 ){
-    var red = remember { mutableFloatStateOf(1f) }
-    var blue = remember { mutableFloatStateOf(0f) }
-    var green = remember { mutableFloatStateOf(0f) }
-    var alpha = remember { mutableFloatStateOf(1f) }
+    val red = remember { mutableFloatStateOf(1f) }
+    val blue = remember { mutableFloatStateOf(0f) }
+    val green = remember { mutableFloatStateOf(0f) }
+    val alpha = remember { mutableFloatStateOf(1f) }
     val colorElementList = listOf(red, blue, green, alpha )
     val colorList = listOf(Color.Red , Color.Blue , Color.Green , Color.White)
 
@@ -588,3 +602,79 @@ fun ColorSlider(color : MutableFloatState , sliderColor : Color){
         )
     }
 }
+
+
+@Composable
+fun GoToPageDialog(
+    openGoToPageDialog: MutableState<Boolean>,
+    onConfirm: (Int)-> Unit,
+){
+
+    var selectedPage by remember { mutableIntStateOf(0) }
+    if(openGoToPageDialog.value) {
+        Dialog(onDismissRequest = { openGoToPageDialog.value = false }) {
+            //StudyMarkerCompsoseTheme {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(8.dp)
+                //.fillMaxWidth(1f)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TextField(
+                        value = selectedPage.toString()
+                        ,onValueChange = {
+                             //if(it.toIntOrNull() != null ) selectedPage = it.toInt()
+                            selectedPage = it.filter { char -> char.isDigit() }.toInt()
+                        },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                        shape = RoundedCornerShape(16.dp),
+                        //border = BorderStroke(0.dp, Color.Transparent),
+                        //modifier = Modifier.border(0.dp , Color.Transparent)
+                        colors = TextFieldDefaults.colors(
+                            disabledTextColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ){
+                        TextButton(
+                            onClick = { openGoToPageDialog.value = false },
+                            //modifier = Modifier.fillMaxWidth(0.5f)
+                        ) {
+                            Text(text = "Cancel")
+                        }
+                        Spacer(modifier = Modifier.fillMaxWidth(0.6f))
+                        TextButton(onClick = {
+                            onConfirm(selectedPage)
+                            Log.d("TAG", "GOToPageDialog: $selectedPage")
+                            openGoToPageDialog.value = false
+                        }
+                        ) {
+                            Text(text = "Go To")
+                        }
+                    }
+
+                }
+            }
+            //}
+        }
+    }
+}
+

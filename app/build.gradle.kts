@@ -78,4 +78,8 @@ dependencies {
     implementation(libs.protobuf.javalite)
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.collections.immutable)
+
+    //ads
+    implementation (libs.play.services.ads)
+
 }

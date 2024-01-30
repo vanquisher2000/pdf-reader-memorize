@@ -1,60 +1,59 @@
 package com.pdf.studymarkercompsose
 
-import android.content.res.Resources.Theme
-import android.graphics.Canvas
+import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonElevation
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
 import androidx.compose.material3.DismissValue
 import androidx.compose.material3.DrawerDefaults
-import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.material3.rememberDrawerState
@@ -67,29 +66,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.modifier.modifierLocalConsumer
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.navigation.findNavController
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.material.animation.AnimationUtils.lerp
+import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.PdfData
+import com.pdf.studymarkercompsose.data.toDp
 import com.pdf.studymarkercompsose.ui.theme.Pink40
 import com.pdf.studymarkercompsose.ui.theme.Pink80
 import com.pdf.studymarkercompsose.ui.theme.Purple40
 import com.pdf.studymarkercompsose.ui.theme.Purple80
 import com.pdf.studymarkercompsose.ui.theme.PurpleGrey40
 import com.pdf.studymarkercompsose.ui.theme.PurpleGrey80
-
 import kotlinx.coroutines.launch
 
 private const val TAG = "StartingScreen"
@@ -108,28 +104,33 @@ private val LightColorScheme = lightColorScheme( // …1
 )
 
 
+@OptIn(ExperimentalFoundationApi::class)
+@SuppressLint("RestrictedApi")
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun StartingScreen(
     state: StartingScreenState,
-    onSelectClick: ()-> Unit,
+    onSelectClick: () -> Unit,
     //bookList: List<PdfData>
     bookMap: Map<String, PdfData>,
     //fragment: startingScreenFragment,
     //sharedViewModel: SharedViewModel,
     onCardClick: (String) -> Unit,
-    onSwipeLeft : (String) -> Unit,
+    onSwipeLeft: (String) -> Unit,
     dynamicColor: Boolean = true,
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    //darkTheme: Boolean = isSystemInDarkTheme(),
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    openDialog: MutableState<Boolean>
+    openDialog: MutableState<Boolean>,
+    appSettings: AppSettings
     //fileName: String
 ) {
 
     //val theme = dynamicLightColorScheme(LocalContext.current)
 
-    val theme = when {
+    val coroutineScope = rememberCoroutineScope()
+
+    /*val theme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> { // …2
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -138,45 +139,219 @@ fun StartingScreen(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+*/
+    //var drawerOpened by remember { mutableStateOf(false) }
+    var drawerEnumState by remember { mutableStateOf(DrawerState.Closed) }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        Row (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .wrapContentHeight(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
 
-        ) {
+    val drawerWidth = (LocalConfiguration.current.screenWidthDp).toDp() * 0.64f
+    val translationX = remember { Animatable(0f) }
 
-            Text(
-                text = "select Pdf File",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if(darkTheme) Color.White else Color.Black
-            )
-            Button(
-                onClick = onSelectClick,
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 4.dp,
-                    pressedElevation = 6.dp
-                ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = theme.secondary
-                )
-            ) {
-                Text(text = "Select", style = MaterialTheme.typography.bodyMedium)
-            }
+    translationX.updateBounds(0f,drawerWidth)
+    val decay = rememberSplineBasedDecay<Float>()
+
+    val draggableState = rememberDraggableState(onDelta = {dragAmount ->
+        coroutineScope.launch {
+            translationX.snapTo(translationX.value + dragAmount)
         }
-        //BooksLazyColumn(bookList = bookList)
-        BooksLazyColumnMap(bookMap = bookMap , onCardClick , onSwipeLeft , theme , darkTheme )
-        SelectedBookAlertDialog(onConfirm = { onConfirm() }, onDismiss = { onDismiss() }, openDialog = openDialog)
+    })
+
+    val anchors = DraggableAnchors{
+        DrawerState.Open at drawerWidth
+        DrawerState.Closed at 0f
     }
+
+    val drawerState = remember {
+        AnchoredDraggableState(
+            initialValue = DrawerState.Closed,
+            anchors = anchors,
+            positionalThreshold = {totalDistance: Float -> totalDistance * 0.5f },
+            animationSpec = spring(
+                dampingRatio = 0.75f,
+                stiffness = 100f
+            ),
+            velocityThreshold = {  50.dp.value },
+        )
+    }
+
+
+
+
+
+
+    SettingsDrawer(appSettings = appSettings)
+   /* Surface(
+        modifier = Modifier
+
+            .graphicsLayer {
+                this.translationX =
+                        //if (drawerOpened) drawerWidth.toPx() else 0f
+                        //translationX.value
+                    drawerState.requireOffset()
+                val scale = lerp(1f, 0.8f, drawerState.requireOffset() / drawerWidth)
+                this.scaleX =
+                    scale
+                //if (drawerOpened) 0.8f else  1f
+                this.scaleY =
+                    scale
+                // if (drawerOpened) 0.8f else 1f
+                //val corners = if (drawerOpened) 320.dp else 0.dp
+                //this.shape = RoundedCornerShape(32.dp)
+            }
+            .background(color = Color.Blue,
+                //shape = RoundedCornerShape(32.dp)
+            )
+            .anchoredDraggable(drawerState, orientation = Orientation.Horizontal)
+            *//*.draggable(
+                draggableState,
+                orientation = Orientation.Horizontal,
+                onDragStopped = { velocity: Float ->
+                    val decayX = decay.calculateTargetValue(
+                        translationX.value,
+                        velocity
+                    )
+                    coroutineScope.launch {
+                        val targetX =
+                            if (decayX > drawerWidth * 0.5) drawerWidth
+                            else
+                                0f
+
+                        val canReachTargetWithDecay =
+                            (decayX > targetX || targetX == drawerWidth)
+                                    || (decayX < targetX && targetX == 0f)
+
+                        if (canReachTargetWithDecay) translationX.animateDecay(velocity, decay)
+                        else translationX.animateTo(targetX, initialVelocity = velocity)
+                    }
+                }
+            )*//*
+    ) {*/
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                //.padding(8.dp)
+                .graphicsLayer {
+                    this.translationX =
+                            //if (drawerOpened) drawerWidth.toPx() else 0f
+                            //translationX.value
+                        drawerState.requireOffset()
+                    val scale = lerp(1f, 0.8f, drawerState.requireOffset() / drawerWidth)
+                    this.scaleX =
+                        scale
+                    //if (drawerOpened) 0.8f else  1f
+                    this.scaleY =
+                        scale
+                    // if (drawerOpened) 0.8f else 1f
+                    //val corners = if (drawerOpened) 320.dp else 0.dp
+                    //this.shape = RoundedCornerShape(32.dp)
+                }
+                .anchoredDraggable(drawerState, orientation = Orientation.Horizontal)
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape =
+                    //RoundedCornerShape(32.dp)
+                    if (drawerEnumState == DrawerState.Open) RoundedCornerShape(32.dp)
+                    else RoundedCornerShape(0.dp)
+                )
+            ,
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(start = 8.dp, top = 32.dp , bottom = 16.dp)
+                ,
+                onClick = {
+                    //drawerOpened = !drawerOpened
+                    //drawerEnumState = if(drawerState.currentValue ==  DrawerState.Open) DrawerState.Closed else DrawerState.Open
+                    Log.d(TAG, "StartingScreen: 1 ${drawerState.currentValue} , ${drawerState.progress}")
+
+                    coroutineScope.launch {
+                        //drawerState.animateTo(drawerEnumState)
+                        //drawerEnumState = drawerState.currentValue
+                        Log.d(TAG, "StartingScreen: 1 ${drawerState.currentValue} , ${drawerState.progress}")
+                        if(drawerState.targetValue == DrawerState.Open){
+                            Log.d(TAG, "StartingScreen: closing")
+                            drawerState.animateTo(DrawerState.Closed)
+                        }else if(drawerState.targetValue == DrawerState.Closed){
+                            Log.d(TAG, "StartingScreen: opening")
+                            drawerState.animateTo(DrawerState.Open)
+                        }
+                        Log.d(TAG, "StartingScreen: 2 ${drawerState.currentValue}")
+
+
+                        /*if(drawerEnumState == DrawerState.Open) {
+                            translationX.animateTo(drawerWidth)
+
+                            Log.d(TAG, "StartingScreen: here 2")
+                        }
+                        else translationX.animateTo(0f)*/
+                    }
+                }
+            ) {
+                Icon(imageVector = Icons.Default.Menu
+                    , contentDescription = "menu"
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .wrapContentHeight()
+                    .border(
+                        BorderStroke(
+                            1.dp,
+                            color = MaterialTheme.colorScheme.tertiaryContainer
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .background(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    )
+                    /*.shadow(
+                        16.dp,
+                        shape = RoundedCornerShape(16.dp)
+                    )*/
+                ,
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+
+                Text(
+                    text = "select Pdf File",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyLarge,
+                    //color = if (darkTheme) Color.White else Color.Black
+                )
+                Button(
+                    onClick = onSelectClick,
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 4.dp,
+                        pressedElevation = 6.dp
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        //containerColor = theme.secondary
+                    )
+                ) {
+                    Text(text = "Select", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            //BooksLazyColumn(bookList = bookList)
+            BooksLazyColumnMap(bookMap = bookMap, onCardClick, onSwipeLeft)
+            SelectedBookAlertDialog(
+                onConfirm = { onConfirm() },
+                onDismiss = { onDismiss() },
+                openDialog = openDialog
+            )
+
+            //AdMobBanner(modifier = Modifier.weight(1f))
+        }
+    //}
+
 }
 /*
 @Composable
@@ -204,18 +379,23 @@ fun CardList(cards: List<CardItem>) {
     }
 }*/
 
+enum class DrawerState{
+    Open,
+    Closed
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElevatedBookCard(nameState : String  , description : String  , onCardClick : (String) -> Unit , timeCreated : String , lastOpened : String , theme : ColorScheme , textColor : Color) {
+fun ElevatedBookCard(nameState : String  , description : String  , onCardClick : (String) -> Unit , timeCreated : String , lastOpened : String  ) {
 
 
 
     ElevatedCard(
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
+            defaultElevation = 8.dp
         ),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = theme.tertiaryContainer
+            //containerColor = theme.tertiaryContainer
         ),
         onClick = {
             Log.d(TAG, "ElevatedBookCard: clicked")
@@ -230,7 +410,7 @@ fun ElevatedBookCard(nameState : String  , description : String  , onCardClick :
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(8.dp)
+            .padding(top = 8.dp, bottom = 8.dp)
             .clickable() {}
 
     ) {
@@ -240,27 +420,27 @@ fun ElevatedBookCard(nameState : String  , description : String  , onCardClick :
             modifier = textModifier,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleMedium,
-            color = textColor
+            //color = textColor
         )
 
         val des = Text(
             text = description,
             modifier = textModifier,
             textAlign = TextAlign.Center,
-            color = textColor
+            //color = textColor
         )
 
         Text(text ="Created on $timeCreated",
             modifier = textModifier,
             textAlign = TextAlign.Center,
-            color = textColor
+            //color = textColor
         )
 
         Text(
             text = "last time Opened : $lastOpened",
             modifier = textModifier,
             textAlign = TextAlign.Center,
-            color = textColor
+            //color = textColor
         )
 
     }
@@ -271,7 +451,7 @@ fun ElevatedBookCard(nameState : String  , description : String  , onCardClick :
 fun BooksLazyColumn(bookList : List<PdfData>){
     LazyColumn(modifier = Modifier
         .fillMaxWidth()
-        .padding(16.dp)
+        .padding(0.dp)
     ){
         items(bookList.size){
             //ElevatedBookCard(bookList[it].name,bookList[it].lastPage)
@@ -281,14 +461,15 @@ fun BooksLazyColumn(bookList : List<PdfData>){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BooksLazyColumnMap(bookMap : Map<String , PdfData>  , onCardClick: (String) -> Unit  , onSwipeLeft : (String) -> Unit , theme : ColorScheme , darkTheme: Boolean){
+fun BooksLazyColumnMap(bookMap : Map<String , PdfData>  , onCardClick: (String) -> Unit  , onSwipeLeft : (String) -> Unit ){
     //bookMap.
     val bookList = bookMap.toList()
     LazyColumn(modifier = Modifier
         .fillMaxWidth()
+        .fillMaxHeight(0.95f)
         .padding(16.dp)
     ){
-        val color = if(darkTheme) Color.White else Color.Black
+        //val color = if(darkTheme) Color.White else Color.Black
         items(bookList.size){
 
             val state = rememberDismissState(
@@ -307,7 +488,7 @@ fun BooksLazyColumnMap(bookMap : Map<String , PdfData>  , onCardClick: (String) 
                 state = state ,
                 background = SwipeBackground(state) ,
                 dismissContent = {
-                    ElevatedBookCard(bookList[it].first,bookList[it].second.filePath, onCardClick , bookList[it].second.timeCreated , bookList[it].second.timeLastOpened , theme , color)
+                    ElevatedBookCard(bookList[it].first,bookList[it].second.filePath, onCardClick , bookList[it].second.timeCreated , bookList[it].second.timeLastOpened )
                 }
             )
         }
@@ -318,35 +499,37 @@ fun BooksLazyColumnMap(bookMap : Map<String , PdfData>  , onCardClick: (String) 
 @Composable
 fun SwipeBackground(state : DismissState ): @Composable() (RowScope.() -> Unit) {
 
+    //Log.d(TAG, "SwipeBackground: state : $state , ${state.dismissDirection} , ${state.progress}")
+
     val color = when (state.dismissDirection) {
         DismissDirection.EndToStart -> MaterialTheme.colorScheme.errorContainer
         DismissDirection.StartToEnd -> MaterialTheme.colorScheme.onSurface
-        null -> Color.Transparent
+        else -> Color.Transparent
     }
-
     return {
-
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    color,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(8.dp),
+        if (state.progress < 1f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        color,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    .padding(8.dp),
             ) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                modifier = Modifier.align(Alignment.CenterEnd),
-                contentDescription = "delete"
-            )
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "edit",
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    contentDescription = "delete"
+                )
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "edit",
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+            }
         }
+        //else { state.progress = 0f }
     }
 
     //return SwipeBackground(state)
@@ -426,6 +609,19 @@ fun SelectedBookAlertDialog( onConfirm : ()-> Unit , onDismiss : ()-> Unit  , op
 
     }
 
+}
+
+@Composable
+fun AdMobBanner(modifier: Modifier = Modifier){
+    AndroidView(
+        modifier = Modifier.fillMaxWidth(),
+        factory = {context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = resources.getString(R.string.start_screen_bottom_banner_unit_id)
+                loadAd(AdRequest.Builder().build())
+            }
+    })
 }
 
 

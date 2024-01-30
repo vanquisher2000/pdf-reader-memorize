@@ -1,27 +1,21 @@
 
 package com.pdf.studymarker.data
 
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.graphics.Paint
+//import com.pdf.studymarkercompsose.data.RectData
 import android.graphics.Path
 import android.graphics.PathMeasure
-import android.graphics.PointF
 import android.graphics.RectF
-import androidx.compose.ui.geometry.Offset
 import com.pdf.studymarkercompsose.data.PathInfo
 import com.pdf.studymarkercompsose.data.PathPoint
-//import com.pdf.studymarkercompsose.data.RectData
-import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -30,7 +24,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.serialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.net.URI
 
 @Serializable
 data class AppSettings(
@@ -41,12 +34,22 @@ data class AppSettings(
     val bookList : PersistentList<PdfData> = persistentListOf(),
     @Serializable(PersistentMapSerializer::class)
     val bookHashMap: PersistentMap<String , PdfData> = persistentHashMapOf(),
+    val appStyle: AppStyle = AppStyle.System,
+    val scrollAnimation : Boolean = true,
+    val pageScaling : Int = 0
 )
 
 //@Serializable
 enum class Language{
     English,French
 }
+
+enum class AppStyle{
+    Light,
+    Dark,
+    System
+}
+
 
 @Serializable
 data class Location(

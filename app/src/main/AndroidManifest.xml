@@ -13,6 +13,18 @@
         android:theme="@style/Theme.StudyMarkerCompsose"
         tools:targetApi="31">
 
+<!--       test ads-->
+<!--        <meta-data-->
+<!--            android:name="com.google.android.gms.ads.APPLICATION_ID"-->
+<!--            android:value ="ca-app-pub-3940256099942544/2247696110"-->
+<!--            />-->
+
+<!--        mine-->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9204034153682287~7530009186"
+            />
+
 
         <activity
             android:name=".MainActivity"
