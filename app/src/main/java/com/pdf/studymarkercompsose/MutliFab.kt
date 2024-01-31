@@ -85,7 +85,8 @@ fun MultiFab(
     bottomBarAlpha: MutableFloatState,
     currentColor: MutableLiveData<SerializedColor>,
     gotoFunction: (Int) -> Unit,
-    darkModeToggle: MutableState<Boolean>
+    darkModeToggle: MutableState<Boolean>,
+    selectedButton: MutableState<ButtonId>
 ) {
 
     val transition = updateTransition(targetState = multiFloatingState , label = "transition")
@@ -129,13 +130,14 @@ fun MultiFab(
                 MiniFab(item = it  , alpha = alpha , fabScale = fabScale , textShadow = textShadow , onMiniFabClick = { miniFabItem ->
                     when(miniFabItem.id){
                         ButtonId.Rect ->{
-
+                            selectedButton.value = ButtonId.Rect
                             onModeStateChange(
                                 if(modeTransient.currentState != ModeState.Rect) ModeState.Rect
                                 else ModeState.Idle
                             )
                         }
                         ButtonId.Delete -> {
+                            selectedButton.value = ButtonId.Delete
                             onModeStateChange(
                                 if(modeTransient.currentState != ModeState.Delete) ModeState.Delete
                                 else ModeState.Idle
@@ -143,12 +145,14 @@ fun MultiFab(
 
                         }
                         ButtonId.Path -> {
+                            selectedButton.value = ButtonId.Path
                             onModeStateChange(
                                 if(modeTransient.currentState != ModeState.Path) ModeState.Path
                                 else ModeState.Idle
                             )
                         }
                         ButtonId.Marker -> {
+                            selectedButton.value = ButtonId.Marker
                             onModeStateChange(
                                 if(modeTransient.currentState != ModeState.Path) ModeState.Marker
                                 else ModeState.Idle
@@ -162,7 +166,8 @@ fun MultiFab(
                     strokeWidth = strokeWidth,
                     openColorPicker = openColorPicker,
                     currentColor = currentColor,
-                    currentColorState = currentColorState
+                    currentColorState = currentColorState,
+                    selectedButton = selectedButton
                 )
                 Spacer(modifier = Modifier.size(8.dp))
             }
@@ -216,7 +221,8 @@ fun MiniFab(
     strokeWidth: MutableFloatState,
     openColorPicker: MutableState<Boolean>,
     currentColor: MutableLiveData<SerializedColor>,
-    currentColorState: MutableState<Color>
+    currentColorState: MutableState<Color>,
+    selectedButton: MutableState<ButtonId>
 ) {
 
     //val color = MaterialTheme.colorScheme.primary
@@ -260,7 +266,12 @@ fun MiniFab(
 
     if(item.id != ButtonId.Color) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(
+                    color = if(selectedButton.value == item.id) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp)
+                )
         ) {
             if (showLabel) {
                 Text(
@@ -278,7 +289,7 @@ fun MiniFab(
                         )
                         .shadow(textShadow)
                         .padding(start = 6.dp, end = 6.dp, top = 4.dp)
-                        .height(24.dp)
+                        //.height(24.dp)
                         .align(Alignment.CenterVertically)
                         //.padding(16.dp)
                         .drawBehind {
@@ -324,14 +335,14 @@ fun MiniFab(
                 onClick =
                 {
                     onMiniFabClick.invoke(item)
-                    fillColor = if (fillColor == Color.White) Color.Black else Color.White
+                    //fillColor = if (fillColor == Color.White) Color.Black else Color.White
                     if (item.id == ButtonId.Width) {
                         width = if (width == 0.dp) 150.dp else 0.dp
                         alphaAux = if (alphaAux == 0f) 1f else 0f
                     }
                 },
                 //containerColor = color,
-                contentColor = fillColor,
+                //contentColor = fillColor,
                 modifier = Modifier
                     //.border(width = 1.dp, color = shadow)
                     .scale(fabScale)

@@ -28,6 +28,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -81,5 +82,8 @@ dependencies {
 
     //ads
     implementation (libs.play.services.ads)
+
+    //coil
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
 }

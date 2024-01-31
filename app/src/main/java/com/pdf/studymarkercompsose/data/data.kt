@@ -1,17 +1,22 @@
 package com.pdf.studymarkercompsose.data
 
 import android.content.res.Resources
-import android.graphics.PointF
 import android.util.TypedValue
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pdf.studymarker.data.ComposeRect
+import com.pdf.studymarker.data.PageDrawings
 import com.pdf.studymarker.data.PersistentPathInfoListSerializer
 import com.pdf.studymarker.data.SerializedColor
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 
 enum class ButtonId{
@@ -23,7 +28,8 @@ enum class ButtonId{
     Marker,
     Width,
     GoToPage,
-    DarkMode
+    DarkMode,
+    None
 }
 
 enum class ModeState{
@@ -86,4 +92,19 @@ fun SerializedColor.toColor() : Color {
 
 fun Color.toSerializedColor() : SerializedColor{
     return SerializedColor(this.red  ,this .green , this.blue , this.alpha)
+}
+
+@Immutable
+data class ImageInfo(
+    var image : ImageBitmap? = null,
+    val rectMap : SnapshotStateList<ComposeRect>,
+    val pageNo : Int,
+    val pageDrawings : PageDrawings?,
+    val id : String = UUID.randomUUID().toString()
+)
+
+
+enum class DrawerState{
+    Open,
+    Closed
 }

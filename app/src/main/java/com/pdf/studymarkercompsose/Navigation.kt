@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,7 +19,7 @@ import com.pdf.studymarkercompsose.data.SharedViewModel
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun navigation(
-    openPdfPage: (Int) -> ImageBitmap,
+    openPdfPage:  (Int) -> ImageBitmap,
     state: StartingScreenState,
     onSelectClick: () -> Unit,
     bookMap: Map<String, PdfData>,
@@ -29,12 +30,13 @@ fun navigation(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     openDialog: MutableState<Boolean>,
-    appSettings: AppSettings
+    appSettings: State<AppSettings>
 ) : NavHostController {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = Screen.MainScreen.route){
         composable(route = Screen.MainScreen.route){
-            StartingScreen(state = state,
+            StartingScreen(
+                state = state,
                 onSelectClick = { onSelectClick() },
                 bookMap = bookMap,
                 onCardClick = onCardClick,

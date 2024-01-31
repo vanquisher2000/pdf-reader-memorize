@@ -36,7 +36,9 @@ data class AppSettings(
     val bookHashMap: PersistentMap<String , PdfData> = persistentHashMapOf(),
     val appStyle: AppStyle = AppStyle.System,
     val scrollAnimation : Boolean = true,
-    val pageScaling : Int = 0
+    val pageScaling : Int = 0,
+    @Serializable(PersistentStringListSerializer::class)
+    val deleteList : PersistentList<String> = persistentListOf()
 )
 
 //@Serializable
@@ -64,6 +66,7 @@ data class PdfData(
     val uriString : String,
     val scrollPositionRatio : Int = 0,
     val filePath : String = "",
+    val darkMode : Boolean = false,
     //@Serializable(PersistentPageDrawingsMapSerializer::class)
     //val  drawingsMap  : PersistentMap<Int , PersistentList<Page>> = persistentHashMapOf()
     @Serializable(PersistentPageDrawingsListSerializer :: class)
@@ -72,7 +75,8 @@ data class PdfData(
     val allDrawings : PersistentMap<Int , PageDrawings>? = null,
     val timeCreated : String = "",
     val timeLastOpened : String = "",
-    val lastUsedColor: SerializedColor = SerializedColor()
+    val lastUsedColor: SerializedColor = SerializedColor(),
+    val strokeWidth: Float = 25f
 )
 
 @Serializable
@@ -310,6 +314,23 @@ class PersistentPathPointFSerializer(private val dataSerializer: KSerializer<Pat
         return ListSerializer(dataSerializer).serialize(encoder, value.toList())
     }
     override fun deserialize(decoder: Decoder): PersistentList<PathPoint> {
+        return ListSerializer(dataSerializer).deserialize(decoder).toPersistentList()
+    }
+}
+
+
+@OptIn(ExperimentalSerializationApi::class)
+@kotlinx.serialization.Serializer(forClass = PersistentList::class)
+class PersistentStringListSerializer(private val dataSerializer: KSerializer<String>) : KSerializer<PersistentList<String>> {
+    private class PersistentListDescriptor : SerialDescriptor by serialDescriptor<List<String>>() {
+        @ExperimentalSerializationApi
+        override val serialName: String = "kotlinx.serialization.immutable.persistentList"
+    }
+    override val descriptor: SerialDescriptor = PersistentListDescriptor()
+    override fun serialize(encoder: Encoder, value: PersistentList<String>) {
+        return ListSerializer(dataSerializer).serialize(encoder, value.toList())
+    }
+    override fun deserialize(decoder: Decoder): PersistentList<String> {
         return ListSerializer(dataSerializer).deserialize(decoder).toPersistentList()
     }
 }

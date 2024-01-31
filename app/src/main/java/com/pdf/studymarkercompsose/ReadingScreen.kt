@@ -1,5 +1,6 @@
 package com.pdf.studymarkercompsose
 
+//import com.pdf.studymarkercompsose.data.RectData
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
@@ -18,12 +19,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -60,12 +64,13 @@ import com.pdf.studymarker.data.PageDrawings
 import com.pdf.studymarker.data.PdfData
 import com.pdf.studymarker.data.SerializedColor
 import com.pdf.studymarkercompsose.data.ButtonId
+import com.pdf.studymarkercompsose.data.ImageInfo
 import com.pdf.studymarkercompsose.data.ModeState
 import com.pdf.studymarkercompsose.data.MultiFloatingState
-//import com.pdf.studymarkercompsose.data.RectData
 import com.pdf.studymarkercompsose.data.SharedViewModel
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.flow.Flow
@@ -75,11 +80,11 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
 @Composable
 fun ReadingScreen(
     sharedModel: SharedViewModel,
-    openPdfPage: (Int) -> ImageBitmap,
+    openPdfPage:  (Int) -> ImageBitmap,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     onResumeReading : () -> Unit
 ) {
@@ -90,27 +95,15 @@ fun ReadingScreen(
     val rectMap : MutableMap<Int , SnapshotStateList<ComposeRect>> = mutableMapOf()
     val pathMap : MutableMap<Int , SnapshotStateList<Path>> = mutableMapOf()
 
-    //val savedMap = sharedModel.currentDrawingList.value?.toMap()
     val savedDrawings = sharedModel.currentDrawings.value
-    //if(sharedModel.drawingsLifeData.value == null) sharedModel.drawingsLifeData.value = mutableMapOf()
     if(sharedModel.drawingMapLifeData.value == null) sharedModel.drawingMapLifeData.value = mutableMapOf()
-    val drawingsMap = sharedModel.drawingMapLifeData.value
-    val strokeWidth = remember { mutableFloatStateOf(10f) }
-
+    //val drawingsMap = sharedModel.drawingMapLifeData.value
+    val strokeWidth = remember { mutableFloatStateOf(sharedModel.strokeWidth.value?: 25f) }
     val animateScroll = sharedModel.animateScroll.value?: true
 
+    val selectedButton = remember { mutableStateOf(ButtonId.None) }
 
-    /*savedMap[it]?.let { savedList ->
-        savedList.forEach { rect ->
-            rectMap[it]?.add(rect)
-        }
-    }*/
 
-    /*savedMap?.forEach{(t,u) ->
-        Log.d(TAG, "ReadingScreen: adding 1 initially")
-        if(rectMap[t] == null) rectMap[t] = SnapshotStateList()
-        savedMap[t]?.forEach { rectMap[t]?.add(it) }
-    }*/
     savedDrawings?.forEach{(t,u) ->
         if(pathMap[t] == null) pathMap[t] = SnapshotStateList()
         //if(drawingsMap!![t] == null) drawingsMap[t] = PageDrawings()
@@ -134,18 +127,6 @@ fun ReadingScreen(
 
     val items = listOf(
         MiniFabItem(
-            icon = ImageVector.vectorResource(id = R.drawable.draw_rect_icon)
-            ,
-            label = "Rectangle" ,
-            id = ButtonId.Rect
-        ),
-        MiniFabItem(
-            icon = ImageVector.vectorResource(id = R.drawable.eraser_tool_2_32)
-            ,
-            label = "Erase" ,
-            id = ButtonId.Delete
-        ),
-        MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.dark_mode_icon),
             label = "Dark Mode",
             id = ButtonId.DarkMode
@@ -156,12 +137,7 @@ fun ReadingScreen(
             label = "Color" ,
             id = ButtonId.Color
         ),
-        MiniFabItem(
-            icon = ImageVector.vectorResource(id = R.drawable.web_page)
-            ,
-            label = "Go To Page" ,
-            id = ButtonId.GoToPage
-        ),
+
         MiniFabItem(
             icon = ImageVector.vectorResource(id = R.drawable.stroke_width_icon)
             ,
@@ -172,7 +148,25 @@ fun ReadingScreen(
             icon = ImageVector.vectorResource(id = R.drawable.marker_icon),
             label = "Marker" ,
             id = ButtonId.Marker
-        )
+        ),
+        MiniFabItem(
+            icon = ImageVector.vectorResource(id = R.drawable.eraser_tool_2_32)
+            ,
+            label = "Erase" ,
+            id = ButtonId.Delete
+        ),
+        MiniFabItem(
+            icon = ImageVector.vectorResource(id = R.drawable.draw_rect_icon)
+            ,
+            label = "Rectangle" ,
+            id = ButtonId.Rect
+        ),
+        MiniFabItem(
+            icon = ImageVector.vectorResource(id = R.drawable.web_page)
+            ,
+            label = "Go To Page" ,
+            id = ButtonId.GoToPage
+        ),
     )
 
     val state = rememberLazyListState()
@@ -183,11 +177,22 @@ fun ReadingScreen(
     if(currentColor.value == null) currentColor.value = SerializedColor()
 
 
-    /* val intList : MutableList<Int> = mutableListOf()
+     //val intList : MutableList<Int> = mutableListOf()
+    var imageInfoList = persistentListOf<ImageInfo>()
+    if(sharedModel.drawingMapLifeData.value == null) sharedModel.drawingMapLifeData.value = mutableMapOf()
 
      for(i in 0 until pageCount!!){
-         intList.add(i)
-     }*/
+         if(sharedModel.drawingMapLifeData.value!![i] == null) sharedModel.drawingMapLifeData.value!![i] = PageDrawings()
+         val tempImageInfo = ImageInfo(
+             ///image = openPdfPage(i),
+             rectMap = SnapshotStateList(),
+             pageDrawings = sharedModel.drawingMapLifeData.value!![i],
+             pageNo = i
+         )
+         imageInfoList = imageInfoList.mutate {
+             it.add(tempImageInfo)
+         }
+     }
 
 
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -201,6 +206,8 @@ fun ReadingScreen(
     val twoFingers = remember {
         mutableStateOf(false)
     }
+    val darkModeToggle = remember { mutableStateOf(sharedModel.darkMode.value?: false) }
+
 
     DisposableEffect(key1 = lifecycleOwner  ) {
         val observer = LifecycleEventObserver{ source, event ->
@@ -213,6 +220,8 @@ fun ReadingScreen(
                         context = context,
                         currentPage = currentPage.intValue,
                         state = state,
+                        darkModeToggle = darkModeToggle,
+                        strokeWidth = strokeWidth
                         //rectMap = savedMap
                     )
                 }
@@ -227,7 +236,8 @@ fun ReadingScreen(
     val pageNo = remember { derivedStateOf { state.firstVisibleItemIndex } }
     val bottomBarWidth = remember { mutableStateOf(64.dp) }
     val bottomBarAlpha = remember { mutableFloatStateOf(0f) }
-    val darkModeToggle = remember { mutableStateOf(false) }
+
+
 
 
     Scaffold (floatingActionButton = {
@@ -254,6 +264,7 @@ fun ReadingScreen(
                 modeState = modeState.value,
                 onModeStateChange = { modeState.value = it },
                 strokeWidth = strokeWidth,
+                selectedButton = selectedButton,
                 modifier = Modifier
                     .fillMaxWidth(),
                 gotoFunction = {
@@ -313,12 +324,14 @@ fun ReadingScreen(
                     })
                 }
                 .pointerInput(Unit) {
-                    detectTransformGestures(onGesture = { centroid, pan, gestureZoom, _ ->
-                        offset = offset.calculateNewOffset(
-                            centroid, pan, zoom, gestureZoom, size
-                        )
-                        zoom = maxOf(1f, zoom * gestureZoom)
-                    })
+                    if (modeState.value == ModeState.Idle || twoFingers.value) {
+                        detectTransformGestures(onGesture = { centroid, pan, gestureZoom, _ ->
+                            offset = offset.calculateNewOffset(
+                                centroid, pan, zoom, gestureZoom, size
+                            )
+                            zoom = maxOf(1f, zoom * gestureZoom)
+                        })
+                    }
                 }
                 .graphicsLayer {
                     translationX = -offset.x * zoom
@@ -353,33 +366,21 @@ fun ReadingScreen(
 
         ) {
 
+            //items(pageCount!! , key = { it }){
+            items(
+                items =  imageInfoList ,
+                key = { it.id }
+                ){
 
-            items(pageCount!! , key = { it }){
-
-                currentPage.intValue = it
+                /*currentPage.intValue = it
                 val image = openPdfPage(it)
                 if(rectMap[it] == null)  rectMap[it] = SnapshotStateList()
                 if(sharedModel.drawingMapLifeData.value == null) sharedModel.drawingMapLifeData.value = mutableMapOf()
                 if(sharedModel.drawingMapLifeData.value!![it] == null) sharedModel.drawingMapLifeData.value!![it] = PageDrawings()
-                if(pathMap[it] == null) pathMap[it] = SnapshotStateList()
-
-               /* Log.d(TAG, "onCreate: adding canvas : $it , current map size = ${rectMap.size}")
+                //if(pathMap[it] == null) pathMap[it] = SnapshotStateList()*/
 
 
-                rectMap.forEach{(t,u) ->
-                    Log.d(TAG, "ReadingScreen: $t , ${u.size}")
-                }
-
-                sharedModel.drawingMapLifeData.value?.forEach { (t, u )->
-                    Log.d(TAG, "reading canvas saveDrawings path map : $t , $u , ${u.pathList?.size} , ${u.rectList?.size}")
-                }
-
-                pathMap.forEach { (t, u )->
-                    Log.d(TAG, "reading canvas retrieved path map : $t , $u , ${u.size} ")
-                }*/
-
-
-                ImageCanvas(
+                /*ImageCanvas(
                     image = image,
                     modeState =  modeState,
                     pageNo =  pageNo,
@@ -388,11 +389,40 @@ fun ReadingScreen(
                     currentPage = it,
                     darkMode = isSystemInDarkTheme(),
                     pageDrawings = sharedModel.drawingMapLifeData.value!![it],
-                    pathMap =  pathMap[it]!!,
+                    //pathMap =  pathMap[it]!!,
                     strokeWidth = strokeWidth,
                     currentColor = currentColor,
                     darkModeToggle = darkModeToggle
-                )
+                )*/
+
+               /* var image by remember { mutableStateOf<ImageBitmap?>(null) }
+                coroutineScope.launch {
+                    //val job = coroutineScope.async { image = openPdfPage(it.pageNo) }
+                    //job.await()
+                    withContext(Dispatchers.Main){
+                        image = openPdfPage(it.pageNo)
+                    }
+                }*/
+
+                //val image = openPdfPage(it.pageNo)
+
+                    if(it.image == null)it.image = openPdfPage(it.pageNo)
+                    ImageCanvas(
+                        //imageLoader = openPdfPage,
+                        image = it.image?: openPdfPage(it.pageNo),
+                        modeState =  modeState,
+                        pageNo =  pageNo,
+                        twoFingers = twoFingers,
+                        rectMap = it.rectMap,
+                        //currentPage = it,
+                        darkMode = isSystemInDarkTheme(),
+                        pageDrawings = it.pageDrawings,
+                        //pathMap =  pathMap[it]!!,
+                        strokeWidth = strokeWidth,
+                        currentColor = currentColor,
+                        darkModeToggle = darkModeToggle
+                    )
+
 
             }
         }
@@ -400,7 +430,14 @@ fun ReadingScreen(
     }
 }
 
-private suspend fun saveDrawings(context: Context, sharedModel: SharedViewModel, state: LazyListState , currentPage : Int ) {
+private suspend fun saveDrawings(
+    context: Context,
+    sharedModel: SharedViewModel,
+    state: LazyListState,
+    currentPage: Int,
+    darkModeToggle: MutableState<Boolean>,
+    strokeWidth: MutableFloatState
+) {
     val TAG = "saveDrawings"
     val bookName = sharedModel.currentBook.value!!
     val uri = sharedModel.sharedUri.value!!
@@ -427,7 +464,9 @@ private suspend fun saveDrawings(context: Context, sharedModel: SharedViewModel,
                     //filePath = "",
                     //drawings = drawingList,
                     allDrawings = mappedDrawing,
-                    lastUsedColor = currentColor!!
+                    lastUsedColor = currentColor!!,
+                    darkMode = darkModeToggle.value,
+                    strokeWidth = strokeWidth.floatValue
                     )
             }
         )
@@ -528,5 +567,7 @@ private fun Offset.calculateNewOffset(
         newOffset.y.coerceIn(0f, (size.height / zoom) * (zoom - 1f))
     )
 }
+
+
 
 

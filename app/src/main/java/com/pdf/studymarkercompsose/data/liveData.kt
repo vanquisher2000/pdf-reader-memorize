@@ -40,6 +40,10 @@ class SharedViewModel : ViewModel() {
 
     val animateScroll = MutableLiveData<Boolean>()
 
+    val strokeWidth = MutableLiveData<Float>()
+
+    val darkMode = MutableLiveData<Boolean>()
+
     /*val selectedPdfUri: MutableLiveData<Uri>
         get() = selectedPdfUri
 

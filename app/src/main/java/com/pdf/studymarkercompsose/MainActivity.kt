@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,7 @@ import java.time.format.DateTimeFormatter
 
 val Context.dataStore by dataStore("app-settings.json" , AppSettingsSerializer)
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity()  {
 
     private val TAG = "MainActivity"
 
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var composeView : ComposeView
     private val viewModel : StartingScreenViewModel by viewModels()
-    private lateinit var appSettings: AppSettings
+    private lateinit var appSettings: State<AppSettings>
 
     private lateinit var navController : NavHostController
     private lateinit var openDialog: MutableState<Boolean>
@@ -185,13 +186,15 @@ class MainActivity : ComponentActivity() {
         //window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
 
 
+        deletePendingBookList()
 
         enableEdgeToEdge()
         setContent {
 
 
             val state by viewModel.state.collectAsState()
-            appSettings = application.dataStore.data.collectAsState(initial = AppSettings()).value
+            appSettings = application.dataStore.data.collectAsState(initial = AppSettings())
+
             openDialog = remember {
                 mutableStateOf(false)
             }
@@ -212,7 +215,7 @@ class MainActivity : ComponentActivity() {
                             openPdfPage(i)
                         },
                         appSettings = appSettings,
-                        bookMap = appSettings.bookHashMap,
+                        bookMap = appSettings.value.bookHashMap,
                         onSelectClick = {openFilePicker()},
                         state = state,
                         onCardClick = { onCardClicked(it) },
@@ -238,7 +241,7 @@ class MainActivity : ComponentActivity() {
 
 
 
-    private fun openPdfPage(pageN0 : Int) : ImageBitmap{
+    private fun  openPdfPage(pageN0 : Int) : ImageBitmap{
 
         if(pdfRenderer == null) initializePdf()
         val page = pdfRenderer!!.openPage(pageN0)
@@ -249,7 +252,7 @@ class MainActivity : ComponentActivity() {
 
 
 
-        val pageScaleFactor = if(appSettings.pageScaling == 0) (displayMetrics.x.toFloat() / page.width.toFloat()) else appSettings.pageScaling.toFloat()
+        val pageScaleFactor = if(appSettings.value.pageScaling == 0) (displayMetrics.x.toFloat() / page.width.toFloat()) else appSettings.value.pageScaling.toFloat()
         //val pageScaleFactor = (displayMetrics.x.toFloat() / page.width.toFloat())
         val bitmapSize  = SizeF(page.width * pageScaleFactor , page.height * pageScaleFactor)
 
@@ -263,6 +266,8 @@ class MainActivity : ComponentActivity() {
         //return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
 
     }
+
+
 
     private fun initializePdf() : Int{
 
@@ -337,7 +342,8 @@ class MainActivity : ComponentActivity() {
             context.dataStore.updateData {
                 Log.d(TAG, "onSwipeLeft: size before deleting ${it.bookHashMap.size}")
                 it.copy(
-                    bookHashMap = it.bookHashMap.mutate { bookMap -> bookMap.remove(bookName) }
+                    //bookHashMap = it.bookHashMap.mutate { bookMap -> bookMap.remove(bookName) }
+                    deleteList = it.deleteList.mutate {list -> list.add(bookName) }
                 )
             }
             val appSettings : Flow<AppSettings> = context.dataStore.data
@@ -347,6 +353,21 @@ class MainActivity : ComponentActivity() {
         //appSettings.bookHashMap.mutate { it.remove(bookName) }
     }
 
+    private fun deletePendingBookList(){
+        lifecycleScope.launch {
+            val context : Context = baseContext
+            context.dataStore.updateData {
+                Log.d(TAG, "onSwipeLeft: size before deleting ${it.bookHashMap.size}")
+                it.copy(
+                    bookHashMap = it.bookHashMap.mutate { bookMap ->
+                        it.deleteList.forEach{book-> bookMap.remove(book) }
+                    },
+                    deleteList = it.deleteList.mutate { list -> list.clear() }
+
+                )
+            }
+        }
+    }
 
 
     private suspend fun getBookData(fileName: String){
@@ -366,6 +387,8 @@ class MainActivity : ComponentActivity() {
             currentDrawings.value = pdfData.allDrawings
             currentColor.value = pdfData.lastUsedColor
             animateScroll.value = appSettings.first().scrollAnimation
+            darkMode.value = pdfData.darkMode
+            strokeWidth.value = pdfData.strokeWidth
             //pageCount.value = pdfRenderer?.pageCount
             Log.d(TAG, "getBookData: size :${currentDrawingList.value?.size}")
             Log.d(TAG, "onCardClicked: got data 6 : ${sharedViewModel.currentBook.value} , uri ${sharedUri.value} , uriString : ${pdfData.uriString}")

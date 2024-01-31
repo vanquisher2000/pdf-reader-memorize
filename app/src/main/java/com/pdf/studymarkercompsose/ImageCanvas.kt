@@ -1,8 +1,10 @@
 package com.pdf.studymarkercompsose
 
+//import com.pdf.studymarkercompsose.data.RectData
 import android.graphics.PointF
 import android.util.Log
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.size
@@ -38,10 +40,8 @@ import com.pdf.studymarkercompsose.data.ModeState
 import com.pdf.studymarkercompsose.data.PathInfo
 import com.pdf.studymarkercompsose.data.PathPoint
 import com.pdf.studymarkercompsose.data.toColor
-//import com.pdf.studymarkercompsose.data.RectData
 import com.pdf.studymarkercompsose.data.toDp
 import kotlinx.collections.immutable.mutate
-import kotlinx.collections.immutable.toPersistentList
 import kotlin.math.absoluteValue
 
 @Composable
@@ -52,33 +52,39 @@ fun ImageCanvas(
     pageNo: State<Int>,
     twoFingers: MutableState<Boolean>,
     rectMap: SnapshotStateList<ComposeRect>,
-    currentPage: Int,
+    //currentPage: Int,
     //saveData: MutableList<ComposeRect>?,
     darkMode: Boolean = true,
     pageDrawings: PageDrawings?,
-    pathMap: SnapshotStateList<Path>,
+    //pathMap: SnapshotStateList<Path>,
     strokeWidth: MutableFloatState,
     currentColor: MutableLiveData<SerializedColor>,
-    darkModeToggle: MutableState<Boolean>
+    darkModeToggle: MutableState<Boolean>,
+    //imageLoader: suspend (Int) -> ImageBitmap
 ){
 
-    val TAG = "ImageCanvas $currentPage"
+    val TAG = "ImageCanvas /*${pageNo.value}*/"
     //val fill : DrawStyle by remember { mutableStateOf(Stroke(15f)) }
     val fill  = remember { mutableStateOf<DrawStyle>(Stroke(15f)) }
     //var filled  by rememberSaveable { mutableStateOf<Boolean>(false) }
+
+    //var image by remember { mutableStateOf<ImageBitmap?>(null) }
+    /*LaunchedEffect(key1 = Unit) {
+        image = imageLoader(LocalContext.current).newBuilder().build()
+    }*/
 
     //val pageNum = currentPage
 
     val rects = rectMap
     val currentRect = remember { mutableStateOf(ComposeRect(0f,0f , color = SerializedColor(alpha = 0f))) }
-    val rect = Rect(offset =  Offset(image.width / 3f , image.height/3f) , size = Size(300f,150f))
+    val rect = Rect(offset =  Offset(image!!.width / 3f , image!!.height/3f) , size = Size(300f,150f))
 
     val currentPath = remember { mutableStateOf(PathInfo()) }
     val pathInfoList = mutableListOf<PathInfo>()
     val pathPointList = remember { mutableStateListOf<PathPoint>() }
     //val pathList = remember { mutableStateListOf<Path>() }
 
-    val pathList = pathMap
+    //val pathList = pathMap
 
    /* val lines = remember {
         mutableStateListOf<Line>()
@@ -92,10 +98,29 @@ fun ImageCanvas(
         0f, 0f, 0f, 1f, 0f
     )
 
-    Canvas(
+   /* AsyncImage(
+        model = image,
+        contentDescription = "",
         modifier = Modifier
             .size(image.width.toDp.dp, image.height.toDp.dp)
-            //.background(Color.Transparent)
+
+
+    )*/
+
+   /*Image(
+       bitmap = image,
+       contentDescription = "",
+       modifier = Modifier
+           .size(image.width.toDp.dp, image.height.toDp.dp)
+   )*/
+
+
+    Canvas(
+        modifier = Modifier
+            .size(image!!.width.toDp.dp, image!!.height.toDp.dp)
+            .background(
+                color = if(!darkModeToggle.value) Color.White else Color.Transparent
+            )
             .pointerInput(modeState.value, twoFingers.value, Unit) {
 
                 Log.d(TAG, "ImageCanvas: current mode ${modeState.value}")
@@ -106,8 +131,11 @@ fun ImageCanvas(
                             val width = change.position.x - currentRect.value.x
                             val height =
                                 if (modeState.value == ModeState.Rect) change.position.y - currentRect.value.y
-                                else (strokeWidth.floatValue )
-                            Log.d(TAG, "ImageCanvas: marker :  $width , $height , ${strokeWidth.floatValue} ")
+                                else (strokeWidth.floatValue)
+                            Log.d(
+                                TAG,
+                                "ImageCanvas: marker :  $width , $height , ${strokeWidth.floatValue} "
+                            )
                             currentRect.value = ComposeRect(
                                 currentRect.value.x,
                                 currentRect.value.y,
@@ -123,7 +151,7 @@ fun ImageCanvas(
                         onDragStart = { offset: Offset ->
                             currentRect.value = ComposeRect(
                                 offset.x,
-                                y = if(modeState.value == ModeState.Rect) offset.y else offset.y - (strokeWidth.floatValue / 2) ,
+                                y = if (modeState.value == ModeState.Rect) offset.y else offset.y - (strokeWidth.floatValue / 2),
                                 //y = offset.y,
                                 color = currentColor.value!!
                             )
@@ -137,7 +165,8 @@ fun ImageCanvas(
 
                         }
                     )
-                } else if (modeState.value == ModeState.Path && !twoFingers.value) {
+                }
+                /*else if (modeState.value == ModeState.Path && !twoFingers.value) {
                     detectDragGestures(
                         onDrag = { change, dragAmount ->
                             val rectification = 100
@@ -170,45 +199,41 @@ fun ImageCanvas(
                         },
                         onDragCancel = {},
                         onDragEnd = {
-                            /*pageDrawings?.pathList?.mutate { list ->
-                                Log.d(TAG, "ImageCanvas: path map list before adding $currentPage :  ${list.size}")
+                            pageDrawings?.pathList?.mutate { list ->
+                                //Log.d(TAG, "ImageCanvas: path map list before adding $currentPage :  ${list.size}")
                                 //list.add(currentPath.value)
                                 list += currentPath.value
-                                Log.d(TAG, "ImageCanvas: path map list after adding $currentPage :  ${list.size}")
-                            }*/
+                                //Log.d(TAG, "ImageCanvas: path map list after adding $currentPage :  ${list.size}")
+                            }
                             pageDrawings?.pathList =
                                 pageDrawings?.pathList?.mutate { it += currentPath.value }
 
                             pathInfoList.add(currentPath.value)
 
-                            pathList.add(generateSmoothPath(currentPath.value))
+                            //pathList.add(generateSmoothPath(currentPath.value))
                             pathPointList.clear()
                             currentPath.value = PathInfo()
                         }
                     )
-                }
+                }*/
 
             }
             .pointerInput(pageNo.value, rectMap, modeState.value) {
-
                 detectTapGestures { offset ->
-                    Log.d(
-                        TAG,
-                        "ImageCanvas: tap ${offset.x} , ${offset.y} , ${fill.value} , pageNo : ${pageNo.value}  , mode : ${modeState.value}"
-                    )
-                    Log.d(TAG, "ImageCanvas: tapped page : $currentPage ")
+                    //Log.d(TAG, "ImageCanvas: tap ${offset.x} , ${offset.y} , ${fill.value} , pageNo : ${pageNo.value}  , mode : ${modeState.value}")
+                    //Log.d(TAG, "ImageCanvas: tapped page : $currentPage ")
 
-                    Log.d(TAG, "ImageCanvas: curretn tap is $offset")
+                    //Log.d(TAG, "ImageCanvas: curretn tap is $offset")
 
-                    if (modeState.value == ModeState.Delete) {
-                        /*pathInfoList.forEachIndexed { index, pathInfo ->
+                    /*if(modeState.value == ModeState.Delete) {
+                        pathInfoList.forEachIndexed { index, pathInfo ->
                             val point = PathPoint(offset.x,offset.y)
                             if(pathInfo.pointsList.contains(point)){
                                 pathInfoList.removeAt(index)
                                 pathList.removeAt(index)
                                 //break
                             }
-                        }*/
+                        }
                         for (i in 0 until pathList.size) {
                             if (pathList[i]
                                     .getBounds()
@@ -220,7 +245,7 @@ fun ImageCanvas(
                                 break
                             }
                         }
-                    }
+                    }*/
 
                     for (i in 0 until rects.size) {
                         val it = rects[i]
@@ -263,11 +288,11 @@ fun ImageCanvas(
     ){
         if(darkModeToggle.value){
             drawImage(
-                image ,
+                image!! ,
                 colorFilter =  ColorFilter.colorMatrix(ColorMatrix(colorMatrix)),
                 blendMode =  BlendMode.Src
             )
-        }else { drawImage(image) }
+        }else { drawImage(image!!) }
 
         //drawRoundRect( Color.Red , topLeft = rect.topLeft , style = fill.value  , size = rect.size , cornerRadius = CornerRadius(8f))
 
@@ -298,28 +323,6 @@ fun ImageCanvas(
                 cornerRadius = CornerRadius(8f)
             )
         }
-
-        pathList.forEach{
-            drawPath(
-                color = Color.Red,
-                path = it,
-                style = Stroke(5.dp.toPx())
-            )
-        }
-        drawPath(
-            color = Color.Magenta,
-            path = generateSmoothPath(currentPath.value),
-            style = Stroke(strokeWidth.floatValue)
-        )
-        /*lines.forEach { line ->
-            drawLine(
-                color = Color.Red,
-                start = line.start,
-                end = line.end,
-                strokeWidth = line.strokeWidth.toPx(),
-                cap = StrokeCap.Round
-            )
-        }*/
     }
 }
 
