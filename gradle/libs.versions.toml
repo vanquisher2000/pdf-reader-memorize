@@ -1,5 +1,6 @@
 [versions]
-agp = "8.4.0-alpha07"
+accompanistSystemuicontroller = "0.27.0"
+agp = "8.4.0-alpha08"
 datastore = "1.1.0-beta01"
 datastorePreferences = "1.0.0"
 kotlin = "1.9.0"
@@ -13,18 +14,22 @@ kotlinxSerializationJson = "1.6.2"
 lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.8.2"
 composeBom = "2024.01.00"
+material3 = "1.1.2"
 navigationCompose = "2.4.0-alpha04"
 navigationComposeVersion = "2.7.6"
 playServicesAds = "22.6.0"
 protobufJavalite = "3.25.2"
 material = "1.11.0"
+material3Android = "1.2.0-rc01"
 
 [libraries]
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanistSystemuicontroller" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastorePreferences" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-material3-v112 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -37,7 +42,7 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version = "1.1.2" }
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlinSerialization" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
@@ -45,7 +50,8 @@ navigation-compose = { module = "androidx .navigation:navigation-compose", versi
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationComposeVersion" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+material = { group = "com.google.android.material", name = "material", version = "1.11.0" }
+androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

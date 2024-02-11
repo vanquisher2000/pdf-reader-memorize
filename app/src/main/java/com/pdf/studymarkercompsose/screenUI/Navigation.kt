@@ -1,11 +1,10 @@
-package com.pdf.studymarkercompsose
+package com.pdf.studymarkercompsose.screenUI
 
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,23 +13,25 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.PdfData
+import com.pdf.studymarkercompsose.Screen
+import com.pdf.studymarkercompsose.StartingScreenState
 import com.pdf.studymarkercompsose.data.SharedViewModel
+import com.pdf.studymarkercompsose.logicClasses.Reader
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun navigation(
-    openPdfPage:  (Int) -> ImageBitmap,
     state: StartingScreenState,
     onSelectClick: () -> Unit,
     bookMap: Map<String, PdfData>,
     onCardClick: (String) -> Unit,
     onSwipeLeft: (String) -> Unit,
     sharedViewModel: SharedViewModel,
-    onResumeReading: () -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     openDialog: MutableState<Boolean>,
-    appSettings: State<AppSettings>
+    appSettings: State<AppSettings>,
+    reader: Reader
 ) : NavHostController {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = Screen.MainScreen.route){
@@ -57,7 +58,10 @@ fun navigation(
                 }
             )
             ){
-            ReadingScreen(sharedViewModel, openPdfPage , onResumeReading = onResumeReading )
+            ReadingScreen(
+                sharedViewModel,
+                reader = reader
+            )
         }
     }
     return  navController

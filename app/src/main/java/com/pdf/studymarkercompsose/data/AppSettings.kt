@@ -24,12 +24,12 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.serialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import java.util.UUID
 
 @Serializable
 data class AppSettings(
     val language : Language = Language.English,
     val knownLocation : PersistentList<Location> = persistentListOf(),
-    //val bookList : MutableList<PdfData> = mutableListOf()
     @Serializable(PersistentListSerializer::class)
     val bookList : PersistentList<PdfData> = persistentListOf(),
     @Serializable(PersistentMapSerializer::class)
@@ -62,6 +62,7 @@ data class Location(
 @Serializable
 data class PdfData(
     val name : String,
+    val id : String = UUID.randomUUID().toString(),
     val lastPage : Int = 1,
     val uriString : String,
     val scrollPositionRatio : Int = 0,

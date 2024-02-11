@@ -6,17 +6,12 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.database.Cursor
-import android.graphics.Bitmap
-import android.graphics.Point
-import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.util.Log
-import android.util.SizeF
-import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,6 +19,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -31,19 +27,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.datastore.dataStore
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
@@ -51,11 +42,13 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.AppSettingsSerializer
+import com.pdf.studymarker.data.AppStyle
 import com.pdf.studymarker.data.PdfData
 import com.pdf.studymarkercompsose.data.SharedViewModel
+import com.pdf.studymarkercompsose.logicClasses.Reader
+import com.pdf.studymarkercompsose.screenUI.navigation
 import com.pdf.studymarkercompsose.ui.theme.StudyMarkerCompsoseTheme
 import kotlinx.collections.immutable.mutate
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -71,16 +64,17 @@ class MainActivity : ComponentActivity()  {
     private val TAG = "MainActivity"
 
 
-    private var pdfRenderer : PdfRenderer? = null
+    //private var pdfRenderer : PdfRenderer? = null
     private lateinit var filePickerLauncher: ActivityResultLauncher<Intent>
     private val sharedViewModel: SharedViewModel by viewModels()
 
-    private lateinit var composeView : ComposeView
+    //private lateinit var composeView : ComposeView
     private val viewModel : StartingScreenViewModel by viewModels()
     private lateinit var appSettings: State<AppSettings>
 
     private lateinit var navController : NavHostController
     private lateinit var openDialog: MutableState<Boolean>
+    //private lateinit var reader: Reader
 
 
 
@@ -119,17 +113,19 @@ class MainActivity : ComponentActivity()  {
                             sharedViewModel.sharedFilePath.value = filePath
 
                             sharedViewModel.sharedUri.value = uri
-                            sharedViewModel.pageCount.value =  initializePdf()
+                            //sharedViewModel.pageCount.value =  initializePdf()
 
                             var filename = getFileName(applicationContext , uri)?: "name not found"
 
 
                         lifecycleScope.launch {
-                                val appSettings : Flow<AppSettings> = applicationContext.dataStore.data
-                                appSettings.first().bookHashMap.forEach { (k, v) ->
+                            val appSettings : Flow<AppSettings> = applicationContext.dataStore.data
+                            similarFileCount = 0
+                            appSettings.first().bookHashMap.forEach { (k, v) ->
+                                    Log.d(TAG, "onCreate: checking $filename :$k ,${v.name}")
                                     if(k.contains(filename)){
                                         similarFileCount++
-
+                                        Log.d(TAG, " checking : found $filename :$k ,${v.name}")
                                     }
                                 }
                                 if(similarFileCount != 0){
@@ -142,7 +138,7 @@ class MainActivity : ComponentActivity()  {
                                             val tempCompareValue = subtractDates(v.timeLastOpened, date)
                                             Log.d(TAG, "onViewCreated: compare value :$compareValue  $date_2 , $date")
                                             Log.d(TAG, "onViewCreated: temp compare value :$tempCompareValue  ${v.timeLastOpened} , $date")
-                                            if ( compareValue != null && compareValue!! > tempCompareValue) {
+                                            if ( tempCompareValue != null && compareValue != null && compareValue!! > tempCompareValue) {
                                                 date_2 = v.timeLastOpened
                                                 Log.d(TAG, "onViewCreated: last opened : $date_2")
                                                 compareValue = tempCompareValue
@@ -151,25 +147,31 @@ class MainActivity : ComponentActivity()  {
                                         }
                                     }
 
-                                    filename = tempKey
+                                    //filename = tempKey
                                     Log.d(TAG, "onViewCreated: last last opened : $date_2 , $filename")
 
                                     sharedViewModel.currentBook.value = filename
-
-
-
-                                    /*makeNewBookDialog(
-                                        { startNewSession(filename, filePath!!, uri, similarFileCount) },
-                                        {onCardClicked(filename)}
-                                    )*/
+                                    sharedViewModel.apply {
+                                        currentBook.value = filename
+                                        lastOpenedBookName.value = tempKey
+                                    }
                                     openDialog.value = true
                                 }else{
-                                    sharedViewModel.currentBook.value = filename
-
-                                    lifecycleScope.launch { updateBooksMap(filename , 1 , uri.toString() , filePath!! , getCurrentTime()) }
-
+                                    //sharedViewModel.currentBook.value = filename
+                                    //sharedViewModel.timeCreated.value = getCurrentTime()
+                                    sharedViewModel.apply {
+                                        sharedUri.value = uri
+                                        currentBook.value = filename
+                                        currentPage.value = 0
+                                        //sharedFilePath.value = filePath
+                                        currentDrawingList.value = null
+                                        scrollYRatio.value   = 0
+                                        timeCreated.value = getCurrentTime()
+                                    }
+                                     updateBooksMap(filename  , uri.toString())
                                     //val navi = view.findNavController()
-                                    // TODO :  navi.navigate(R.id.action_startingScreenFragment_to_readingscreenFragment)
+                                    //reader.initializePdf(_uri = uri)
+                                    sharedViewModel.reader.value?.initializePdf(uri)
                                     navController.navigate(Screen.ReadingScreen.route)
                                 }
                             }
@@ -186,20 +188,43 @@ class MainActivity : ComponentActivity()  {
         //window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
 
 
-        deletePendingBookList()
+        //deletePendingBookList()
+        /*reader = Reader(
+            _context = applicationContext,
+            _sharedViewModel = sharedViewModel,
+        )*/
+        //if(sharedViewModel.imageInfoList.value == null) sharedViewModel.imageInfoList.value = persistentListOf()
+        /*if(sharedViewModel.reader.value == null)*/ sharedViewModel.reader.value = Reader(
+            _context = applicationContext,
+            _sharedViewModel = sharedViewModel,
+        )
+
+
 
         enableEdgeToEdge()
         setContent {
 
+           /* sharedViewModel.reader.value = rememberSaveable {
+                Reader(
+                    _context = applicationContext,
+                    _sharedViewModel = sharedViewModel,
+                )
+            }*/
 
             val state by viewModel.state.collectAsState()
             appSettings = application.dataStore.data.collectAsState(initial = AppSettings())
+            var darkMode by remember { mutableStateOf(false) }
+            darkMode = when(appSettings.value.appStyle){
+                    AppStyle.Light -> false
+                    AppStyle.Dark -> true
+                    AppStyle.System -> isSystemInDarkTheme()
+            }
 
             openDialog = remember {
                 mutableStateOf(false)
             }
 
-            StudyMarkerCompsoseTheme {
+            StudyMarkerCompsoseTheme(darkTheme = darkMode) {
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
@@ -208,39 +233,27 @@ class MainActivity : ComponentActivity()  {
                     color = MaterialTheme.colorScheme.background,
 
                 ) {
-
                     navController = navigation(
-                        openPdfPage = {
-                                i: Int ->
-                            openPdfPage(i)
-                        },
-                        appSettings = appSettings,
-                        bookMap = appSettings.value.bookHashMap,
-                        onSelectClick = {openFilePicker()},
                         state = state,
+                        onSelectClick = {openFilePicker()},
+                        bookMap = appSettings.value.bookHashMap,
                         onCardClick = { onCardClicked(it) },
                         onSwipeLeft = { onSwipeLeft(it) },
                         sharedViewModel = sharedViewModel,
-                        onResumeReading = { MainScope().launch {   getBookData(sharedViewModel.currentBook.value?: "") } },
-                        onConfirm = { startNewSession(sharedViewModel.currentBook.value!!, "", sharedViewModel.sharedUri.value!!, similarFileCount) },
-                        onDismiss = { onCardClicked(sharedViewModel.currentBook.value!!) },
-                        openDialog = openDialog
+                        onConfirm = { startNewSession(sharedViewModel.currentBook.value!!,  sharedViewModel.sharedUri.value!!, similarFileCount) },
+                        onDismiss = { onCardClicked(sharedViewModel.lastOpenedBookName.value!!) },
+                        openDialog = openDialog,
+                        appSettings = appSettings,
+                        reader = sharedViewModel.reader.value!!
                     )
                 }
             }
         }
     }
 
-    private fun getScreenWidth(): Point {
-        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val display = windowManager.defaultDisplay
-        val size = android.graphics.Point()
-        display.getSize(size)
-        return size
-    }
 
 
-
+/*
     private fun  openPdfPage(pageN0 : Int) : ImageBitmap{
 
         if(pdfRenderer == null) initializePdf()
@@ -249,8 +262,6 @@ class MainActivity : ComponentActivity()  {
         val displayMetrics = getScreenWidth()
 
         //val relativeHeight : Float = (displayMetrics.x.toFloat() / page.width.toFloat()) * page.height
-
-
 
         val pageScaleFactor = if(appSettings.value.pageScaling == 0) (displayMetrics.x.toFloat() / page.width.toFloat()) else appSettings.value.pageScaling.toFloat()
         //val pageScaleFactor = (displayMetrics.x.toFloat() / page.width.toFloat())
@@ -279,6 +290,7 @@ class MainActivity : ComponentActivity()  {
         pdfRenderer = PdfRenderer(pfd!!)
         return pdfRenderer!!.pageCount
     }
+*/
 
 
     private fun openFilePicker() {
@@ -324,8 +336,10 @@ class MainActivity : ComponentActivity()  {
         }
         val job = lifecycleScope.launch {
             getBookData(fileName)
-            sharedViewModel.pageCount.value = initializePdf()
+            //sharedViewModel.pageCount.value = initializePdf()
             Log.d(TAG, "onCardClicked: got data : ${sharedViewModel.currentBook.value}")
+            //reader.initializePdf()
+            sharedViewModel.reader.value?.initializePdf()
         }
         lifecycleScope.launch {
             job.join()
@@ -339,21 +353,24 @@ class MainActivity : ComponentActivity()  {
         Log.d(TAG, "onSwipeLeft: removing : $bookName")
         lifecycleScope.launch {
             val context : Context = baseContext
+            val appSettings : Flow<AppSettings> = context.dataStore.data
+            Log.d(TAG, "onSwipeLeft: size before deleting ${appSettings.first().bookHashMap.size}")
+            appSettings.first().bookHashMap.forEach{ (t, u) -> Log.d(TAG, "onSwipeLeft: $t , $u") }
             context.dataStore.updateData {
-                Log.d(TAG, "onSwipeLeft: size before deleting ${it.bookHashMap.size}")
                 it.copy(
-                    //bookHashMap = it.bookHashMap.mutate { bookMap -> bookMap.remove(bookName) }
-                    deleteList = it.deleteList.mutate {list -> list.add(bookName) }
+                    bookHashMap = it.bookHashMap.mutate { bookMap -> bookMap.remove(bookName) }
+                    //deleteList = it.deleteList.mutate {list -> list.add(bookName) }
                 )
             }
-            val appSettings : Flow<AppSettings> = context.dataStore.data
             Log.d(TAG, "onSwipeLeft: size after deleting ${appSettings.first().bookHashMap.size}")
+            appSettings.first().bookHashMap.forEach{ (t, u) -> Log.d(TAG, "onSwipeLeft: $t , $u") }
+
 
         }
         //appSettings.bookHashMap.mutate { it.remove(bookName) }
     }
 
-    private fun deletePendingBookList(){
+    /*private fun deletePendingBookList(){
         lifecycleScope.launch {
             val context : Context = baseContext
             context.dataStore.updateData {
@@ -367,7 +384,7 @@ class MainActivity : ComponentActivity()  {
                 )
             }
         }
-    }
+    }*/
 
 
     private suspend fun getBookData(fileName: String){
@@ -375,24 +392,32 @@ class MainActivity : ComponentActivity()  {
         val appSettings : Flow<AppSettings> = applicationContext.dataStore.data
         //var uri : Uri? = null
         val pdfData : PdfData? = appSettings.first().bookHashMap[fileName]
-        val uri = Uri.parse(pdfData!!.uriString)
-        sharedViewModel.apply {
-            sharedUri.value = uri
-            currentBook.value = fileName
-            currentPage.value = pdfData.lastPage
-            sharedFilePath.value = pdfData.filePath
-            currentDrawingList.value = pdfData.drawings
-            scrollYRatio.value   = pdfData.scrollPositionRatio
-            timeCreated.value = pdfData.timeCreated
-            currentDrawings.value = pdfData.allDrawings
-            currentColor.value = pdfData.lastUsedColor
-            animateScroll.value = appSettings.first().scrollAnimation
-            darkMode.value = pdfData.darkMode
-            strokeWidth.value = pdfData.strokeWidth
-            //pageCount.value = pdfRenderer?.pageCount
-            Log.d(TAG, "getBookData: size :${currentDrawingList.value?.size}")
-            Log.d(TAG, "onCardClicked: got data 6 : ${sharedViewModel.currentBook.value} , uri ${sharedUri.value} , uriString : ${pdfData.uriString}")
-            Log.d(TAG, "getBookData: got path : ${pdfData.filePath}")
+        if(pdfData != null) {
+            val uri : Uri? = Uri.parse(pdfData.uriString)
+            sharedViewModel.apply {
+                sharedUri.value = uri
+                currentBook.value = fileName
+                currentPage.value = pdfData.lastPage
+                sharedFilePath.value = pdfData.filePath
+                currentDrawingList.value = pdfData.drawings
+                scrollYRatio.value = pdfData.scrollPositionRatio
+                timeCreated.value = pdfData.timeCreated
+                currentDrawings.value = pdfData.allDrawings
+                currentColor.value = pdfData.lastUsedColor
+                animateScroll.value = appSettings.first().scrollAnimation
+                darkMode.value = pdfData.darkMode
+                strokeWidth.value = pdfData.strokeWidth
+                currentBookData.value = pdfData
+                //pageCount.value = pdfRenderer?.pageCount
+                Log.d(TAG, "getBookData: size :${currentDrawingList.value?.size}")
+                Log.d(
+                    TAG,
+                    "onCardClicked: got data 6 : ${sharedViewModel.currentBook.value} , uri ${sharedUri.value} , uriString : ${pdfData.uriString}"
+                )
+                Log.d(TAG, "getBookData: got path : ${pdfData.filePath}")
+            }
+        }else{
+            Toast.makeText(this,"Can't find the book" , Toast.LENGTH_SHORT).show()
         }
 
         Log.d(TAG, "getBookData: out")
@@ -418,32 +443,34 @@ class MainActivity : ComponentActivity()  {
         }
     }
 
-    private fun startNewSession(filename: String ,filePath : String , uri: Uri , fileCount : Int ){
+    private fun startNewSession(filename: String  , uri: Uri , fileCount : Int ){
         val newName = "$filename #$fileCount"
         val currentTime = getCurrentTime()
         sharedViewModel.apply {
             sharedUri.value = uri
             currentBook.value = newName
             currentPage.value = 0
-            sharedFilePath.value = filePath
+            //sharedFilePath.value = filePath
             currentDrawingList.value = null
             scrollYRatio.value   = 0
             timeCreated.value = currentTime
         }
 
-        lifecycleScope.launch { updateBooksMap(newName , 0 , uri.toString() , filePath , currentTime) }
+        //reader.initializePdf(_uri = uri)
+        sharedViewModel.reader.value?.initializePdf()
+        val job = lifecycleScope.launch { updateBooksMap(newName ,  uri.toString() ) }
+        lifecycleScope.launch {
+            job.join()
+            navController.navigate(Screen.ReadingScreen.route)
+        }
     }
 
-    private suspend fun updateBooksMap(fileName : String, pageNo: Int,uriString : String , path: String , timeCreatedOn : String ){
+    private suspend fun updateBooksMap(fileName : String,uriString : String){
+        val createdOn = sharedViewModel.timeCreated.value
         applicationContext.dataStore.updateData {
             it.copy( bookHashMap = it.bookHashMap.mutate { bookMap ->
-                /*if(bookMap[fileName] != null){
-                    bookMap[fileName]?.lastPage  = pageNo
-                }else{
-                    bookMap[fileName] = PdfData(fileName , pageNo , uriString)
-                }*/
-                Log.d(TAG, "updateBooksMap: updating : path $path")
-                bookMap[fileName] = PdfData(fileName , pageNo , uriString , filePath = path , timeCreated = timeCreatedOn)
+                //Log.d(TAG, "updateBooksMap: updating : path $path")
+                bookMap[fileName] = PdfData(name = fileName , lastPage = 0 , uriString =  uriString , filePath = "" , timeCreated = createdOn?: "couldn't get the time" )
             } )
         }
     }
@@ -494,22 +521,6 @@ class MainActivity : ComponentActivity()  {
 
 
 
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    StudyMarkerCompsoseTheme {
-        Greeting("Android")
-    }
 }
 
 

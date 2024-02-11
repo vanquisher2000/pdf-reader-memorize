@@ -29,7 +29,8 @@ enum class ButtonId{
     Width,
     GoToPage,
     DarkMode,
-    None
+    None,
+    Idle
 }
 
 enum class ModeState{

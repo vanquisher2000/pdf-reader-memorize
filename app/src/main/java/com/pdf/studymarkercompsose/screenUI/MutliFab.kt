@@ -1,5 +1,7 @@
-package com.pdf.studymarkercompsose
+package com.pdf.studymarkercompsose.screenUI
 
+import CustomSlider
+import CustomSliderDefaults
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.animation.core.animateDp
@@ -25,12 +27,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -51,11 +53,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -112,6 +114,7 @@ fun MultiFab(
 
     val openColorPicker = remember { mutableStateOf(false) }
     val openGoToPageDialog = remember { mutableStateOf(false) }
+    var mainButtonAlpha by remember { mutableFloatStateOf(0.5f) }
 
 
     val currentColorState = remember { mutableStateOf(currentColor.value!!.toColor()) }
@@ -180,10 +183,12 @@ fun MultiFab(
                     onModeStateChange(ModeState.Idle)
                     bottomBarWidth.value = 64.dp
                     bottomBarAlpha.floatValue = 0f
+                    mainButtonAlpha = 0.5f
                 }else{
                     onMultiFloatingStateChange(MultiFloatingState.Expanded)
                     bottomBarWidth.value = (configuration.screenWidthDp).dp
                     bottomBarAlpha.floatValue = 1f
+                    mainButtonAlpha = 1f
 
                 }
                /* onMultiFloatingStateChange(
@@ -193,7 +198,16 @@ fun MultiFab(
                     else MultiFloatingState.Expanded
                 )*/
             },
-            modifier = Modifier.rotate(rotate)
+            modifier = Modifier
+                .rotate(rotate)
+                .size(40.dp)
+                .alpha(
+                    animateFloatAsState(
+                        targetValue = mainButtonAlpha,
+                        label = "mainButtonAlpha"
+                    ).value
+                )
+
         ) {
             Icon(
                 imageVector = Icons.Default.Menu,
@@ -205,9 +219,11 @@ fun MultiFab(
 }
 
 class MiniFabItem(
-    val icon : ImageVector,
+    //val icon : ImageVector,
+    val icon : Int,
     val label : String,
-    val id : ButtonId
+    val id : ButtonId,
+    val modeState: ModeState = ModeState.Idle
 )
 
 @Composable
@@ -287,7 +303,7 @@ fun MiniFab(
                                 label = "alpha animation"
                             ).value
                         )
-                        .shadow(textShadow)
+                        //.shadow(textShadow)
                         .padding(start = 6.dp, end = 6.dp, top = 4.dp)
                         //.height(24.dp)
                         .align(Alignment.CenterVertically)
@@ -357,7 +373,7 @@ fun MiniFab(
                 //.drawWithContent {  if(item.id == ButtonId.Color) drawCircle(color = Color.Red , radius = 32.dp.toPx()) }
             ) {
                  Icon(
-                    imageVector = item.icon,
+                    imageVector = ImageVector.vectorResource(id = item.icon), //item.icon,
                     contentDescription = "draw"
                 )
             }
@@ -589,28 +605,45 @@ fun ColorPicker(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ColorSlider(color : MutableFloatState , sliderColor : Color){
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly
     ){
-        Slider(
-            value = color.floatValue,
-            onValueChange = {color.floatValue = it},
-            colors = SliderDefaults.colors(
+        CustomSlider(
+            value = color.floatValue * 100,
+            onValueChange = {color.floatValue = it / 100},
+            valueRange = 0f..100f,
+            gap = 1,
+            /*colors = SliderDefaults.colors(
                 thumbColor = sliderColor,
                 activeTrackColor = sliderColor
-            ),
+            ),*/
+            track = {CustomSliderDefaults.Track(
+                sliderPositions = it ,
+                progressColor = sliderColor,
+                height = 32.dp,
+                shape = RoundedCornerShape(8.dp)
+            )},
+            thumb = {CustomSliderDefaults.Thumb(
+                thumbValue = it.toString(),
+                color = sliderColor,
+                textColor = MaterialTheme.colorScheme.tertiary,
+                //onClick = {openGoToPageDialog.value = true },
+                size = 32.dp,
+                shape = RoundedCornerShape(8.dp)
+            )},
             modifier = Modifier
                 //.height(64.dp)
                 .fillMaxWidth(0.80f)
         )
-        Text(
+        /*Text(
             text = " : " + (color.floatValue * 100).toInt().toString(),
             modifier = Modifier
                 //.fillMaxWidth(0.4f)
-        )
+        )*/
     }
 }
 

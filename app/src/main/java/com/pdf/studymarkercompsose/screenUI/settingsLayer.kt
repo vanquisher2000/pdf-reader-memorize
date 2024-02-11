@@ -1,4 +1,4 @@
-package com.pdf.studymarkercompsose
+package com.pdf.studymarkercompsose.screenUI
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -41,9 +43,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.pdf.studymarker.data.AppSettings
 import com.pdf.studymarker.data.AppStyle
+import com.pdf.studymarkercompsose.R
+import com.pdf.studymarkercompsose.dataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -100,8 +105,8 @@ fun SettingsDrawer(appSettings: AppSettings){
             SettingsRow(
                 item = "Scroll Animation :",
                 imageVector = ImageVector.vectorResource(id = R.drawable.scroll_animation_icon),
-                value =
-                    if(appSettings.scrollAnimation) "ON" else "OFF"
+                value ="",
+                scrollAnimation = appSettings.scrollAnimation
             ){}
             SettingsRow(item ="Page Enhancement :"
                 , imageVector = ImageVector.vectorResource(id = R.drawable.page_enhancement_icon),
@@ -116,7 +121,7 @@ fun SettingsDrawer(appSettings: AppSettings){
 }
 
 @Composable
-fun SettingsRow(item : String ,imageVector: ImageVector , value: String  , onClick : ()-> Unit){
+fun SettingsRow(item : String ,imageVector: ImageVector , value: String , scrollAnimation : Boolean = false , onClick : ()-> Unit){
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     Row(
@@ -154,9 +159,9 @@ fun SettingsRow(item : String ,imageVector: ImageVector , value: String  , onCli
         }
         //Spacer(modifier = Modifier.padding(16.dp))
         if(item.contains("Scroll")){
-            var scrollAnimationSwitch by remember { mutableStateOf(false)}
+            var scrollAnimationSwitch by remember { mutableStateOf(scrollAnimation)}
             Log.d("TAG", "SettingsRow: state value is $scrollAnimationSwitch")
-            scrollAnimationSwitch =  (value == "ON")
+            //scrollAnimationSwitch =  (value == "ON")
             Switch(
                 modifier = Modifier
                     .padding(end = 6.dp, top = 8.dp, bottom = 8.dp)
@@ -321,7 +326,7 @@ fun SetEnhancementDialog(
                             enabled = !automatic,
                             modifier = Modifier
                                 .fillMaxWidth(0.75f)
-                                   .padding(start = 6.dp)
+                                .padding(start = 6.dp)
                         )
                         Spacer(modifier = Modifier.padding(4.dp))
                         Text(
@@ -330,8 +335,6 @@ fun SetEnhancementDialog(
                             )
                     }
                     Spacer(modifier = Modifier.padding(4.dp))
-
-
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
@@ -365,6 +368,23 @@ fun SetEnhancementDialog(
                                 automatic = !automatic
                                 if(automatic)selectedEnhancement.intValue = 0
                             }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .padding(8.dp)
+                    ){
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "page scaling warning",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Increasing enhancement may increase power consumption and loading time",
+                            fontSize = 12.sp
                         )
                     }
 

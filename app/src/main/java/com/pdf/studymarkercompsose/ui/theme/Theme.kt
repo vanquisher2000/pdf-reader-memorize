@@ -1,7 +1,6 @@
 package com.pdf.studymarkercompsose.ui.theme
 
 import android.os.Build
-import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -9,11 +8,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import com.pdf.studymarker.data.AppStyle
-import com.pdf.studymarkercompsose.dataStore
-import kotlinx.coroutines.flow.first
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -45,31 +41,19 @@ fun StudyMarkerCompsoseTheme(
     content: @Composable () -> Unit
 ) {
     //val coroutineScope = rememberCoroutineScope()
+    val systemUiController = rememberSystemUiController()
     val context = LocalContext.current
-    var appStyle = AppStyle.System
-
-    LaunchedEffect(key1 = Unit) {
-        val appSettings = context.dataStore.data
-        appStyle = appSettings.first().appStyle
-    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             //val context = LocalContext.current
-            when(appStyle){
-                AppStyle.Light -> dynamicLightColorScheme(context)
-                AppStyle.Dark -> dynamicDarkColorScheme(context)
-                AppStyle.System -> {
                     if (darkTheme ) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-                }
             }
-
-        }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
 
-    Log.d("TAG", "StudyMarkerCompsoseTheme: $appStyle ,$colorScheme  ")
+    systemUiController.isSystemBarsVisible = false
+
 
     MaterialTheme(
         colorScheme = colorScheme,
